@@ -1,0 +1,11 @@
+{
+  "status": "complete",
+  "detail": "complete; report: /metrics/evaluation_report.md",
+  "rollout_state": "VLA",
+  "completed": 32,
+  "total": 32,
+  "scenario": 12,
+  "task": 3,
+  "tasks_in_scene": 3,
+  "instruction": "drill in the blue triangle"
+}

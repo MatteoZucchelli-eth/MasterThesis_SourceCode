@@ -1,0 +1,64 @@
+# Leak-free launcher for the GR00T eval server.
+#
+# WHY THIS EXISTS
+# The old command mounted the venv as an *anonymous* volume:  -v /workspace/.venv
+# Docker creates a brand-new random 15G volume for it on every `docker run`, and
+# only deletes it (via --rm) if the container exits *gracefully*. Any Ctrl-C kill,
+# OOM, reboot, or `dockerd` restart skips that cleanup -> the 15G volume is orphaned.
+# Repeat a few dozen times and you get the pile of dangling 15G volumes that filled
+# the disk. Here we use a single NAMED volume (groot_venv) that is reused across every
+# run and therefore never accumulates. Remove it deliberately with `make clean`.
+#
+# Compose auto-loads the sibling .env file, so HF_TOKEN etc. need no `source .env`.
+
+services:
+  gr00t:
+    image: gr00t
+    build:
+      context: .
+      dockerfile: docker/Dockerfile   # build context honours .dockerignore
+    pull_policy: never                 # use the local image; never hit a registry
+    gpus: all                          # needs Compose v2.30+ (you have v5.3.1)
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    ports:
+      - "${PORT:-5555}:${PORT:-5555}"
+    working_dir: /workspace
+    volumes:
+      - .:/workspace                   # live code, bind-mounted
+      - groot_venv:/workspace/.venv    # NAMED volume: reused every run, never leaks
+      - groot_vscode:/root/.vscode-server   # persistent VS Code server: download once, fast re-attach
+      - ${HOME}/.claude:/root/.claude       # Claude Code auth + settings + history (shared with host)
+      # Claude native binary -> on PATH inside the container as `claude`.
+      # `make` resolves CLAUDE_BIN to the newest installed extension version; the default
+      # below keeps a plain `docker compose up` working too.
+      - ${CLAUDE_BIN:-/home/mzucchelli/.vscode-server/extensions/anthropic.claude-code-2.1.217-linux-x64/resources/native-binary/claude}:/usr/local/bin/claude:ro
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+      WANDB_API_KEY: ${WANDB_API_KEY:-}
+      # Read by scripts/serve_entrypoint.sh to pick + launch the right server.
+      MODEL_PATH: ${MODEL_PATH:-general_3k}
+      EMBODIMENT_TAG: ${EMBODIMENT_TAG:-NEW_EMBODIMENT}
+      SERVER: ${SERVER:-auto}          # auto | vla | perception
+      PORT: ${PORT:-5555}
+    # Dispatch to run_gr00t_server.py (VLA) or run_perception_server.py based on
+    # the checkpoint's config.json model_type (SERVER=auto), or force with SERVER=.
+    command:
+      - bash
+      - scripts/serve_entrypoint.sh
+
+# `name:` pins these to fixed volume names instead of letting Compose prefix them
+# with the project name. That is what lets a SECOND project (`make up-d PORT=5556`,
+# which runs under project gr00t-5556) share the same 15G venv instead of building
+# its own. The names match the volumes that already exist, so no data is lost.
+# Compose warns '"isaac-gr00t_groot_venv" already exists but was created for project
+# "isaac-gr00t"' — benign: it is the com.docker.compose.project label on the volume
+# from before this change; the volume is still reused. `external: true` silences it
+# but then a fresh clone fails instead of creating the volume, so keep `name:`.
+volumes:
+  groot_venv:      # the ONE reusable venv volume — the whole point of this file
+    name: isaac-gr00t_groot_venv
+  groot_vscode:    # persistent VS Code server + extensions (survives container recreation)
+    name: isaac-gr00t_groot_vscode

@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>g1_simulation</name>
+  <version>0.0.0</version>
+  <description>Mujoco simulation node for unitree G1</description>
+  <maintainer email="joshua.naef@mrl.ethz.ch">MRL</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>g1_definitions</depend>
+  <depend>tf2_ros</depend>
+  <depend>geometry_msgs</depend>
+  <depend>g1_common</depend>
+  <depend>std_msgs</depend>
+  <depend>rosgraph_msgs</depend>
+  <depend>unitree_hg</depend>
+
+  <!-- Launch-only (simulation_utils.py). compressed_image_transport provides
+       the 'compressed' plugin republish loads by name. -->
+  <exec_depend>topic_tools</exec_depend>
+  <exec_depend>image_transport</exec_depend>
+  <exec_depend>compressed_image_transport</exec_depend>
+
+  <!-- Used by test_calibration_tag only. -->
+  <test_depend>g1_sensors</test_depend>
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

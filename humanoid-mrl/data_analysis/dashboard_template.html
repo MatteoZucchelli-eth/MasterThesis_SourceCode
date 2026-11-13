@@ -1,0 +1,89 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dataset preflight</title>
+<style>
+:root{--bg:#f7f7f4;--card:#fff;--ink:#171716;--muted:#696863;--line:#deddd6;--bad:#c33;--warn:#a66a00;--ok:#17845d;--blue:#2878cf}
+@media(prefers-color-scheme:dark){:root{--bg:#111;--card:#1b1b1a;--ink:#f5f5f3;--muted:#aaa8a1;--line:#393936;--bad:#ef7777;--warn:#e2a52f;--ok:#44bd8e;--blue:#61a5ef}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,sans-serif}
+main{max-width:1200px;margin:auto;padding:36px 24px 64px}h1{font-size:24px;margin:0 0 5px}h2{font-size:17px;margin:42px 0 5px}p{color:var(--muted);max-width:80ch;margin:0 0 16px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:12px}.card,.plot{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:15px}.name{font-weight:650}.big{font-size:30px;font-weight:700;margin-top:7px}.small{color:var(--muted);font-size:12px}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.plots{display:flex;gap:12px;flex-wrap:wrap}.plot{overflow:auto}.plot h3{font-size:13px;margin:0}.plot p{font-size:12px;margin:2px 0 8px}.grid{stroke:var(--line);stroke-width:1}.frame{fill:none;stroke:var(--muted)}.point{fill:var(--blue);stroke:var(--card);stroke-width:1.5}
+.table{overflow:auto;border:1px solid var(--line);border-radius:9px}table{border-collapse:collapse;width:100%;background:var(--card)}th,td{padding:8px 11px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}th{font-size:12px;color:var(--muted)}th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px}.issues ul{margin:5px 0 0;padding-left:20px}.issues .card{margin-bottom:10px}.legend dl{display:grid;grid-template-columns:minmax(190px,260px) 1fr;gap:8px 20px}.legend dt{font-weight:650}.legend dd{margin:0;color:var(--muted)}@media(max-width:650px){.legend dl{grid-template-columns:1fr}.legend dd{margin-bottom:10px}}
+</style>
+<main>
+  <h1>Dataset preflight</h1>
+  <p>Overview and integrity checks for LeRobot datasets. PCA coverage and the repeated-action fraction are descriptive heuristics—not predictions of policy success.</p>
+
+  <h2>Overview</h2>
+  <div class="cards" id="overview"></div>
+
+  <h2>Integrity</h2>
+  <p>These checks identify data that may fail to load or silently corrupt training.</p>
+  <div class="issues" id="issues"></div>
+
+  <h2>PCA target coverage</h2>
+  <p>One dot per episode, projected from 3-D onto the two directions of greatest target variation. Grid spacing equals the target width. Coordinates are centered PCA coordinates, not literal wall axes.</p>
+  <div class="plots" id="plots"></div>
+
+  <h2>Metrics</h2>
+  <div class="table"><table id="metrics"></table></div>
+
+  <section class="legend">
+    <h2>Interpretation</h2>
+    <dl>
+      <dt>Episodes / PCA target cell</dt><dd>The 5th–95th percentile PCA rectangle divided into target-sized cells, then episode count divided by cell count. Useful for comparing spatial sampling; it has no universal pass threshold.</dd>
+      <dt>Goal nearest-neighbour distance</dt><dd>Median distance from each target to its nearest target from the same task. Lower values indicate denser local sampling.</dd>
+      <dt>Demo target-hit fraction</dt><dd>Fraction of labelled episodes whose minimum target distance is within half the supplied target width.</dd>
+      <dt>Repeated-action fraction</dt><dd>Median episode fraction of consecutive action vectors that are exactly identical. This exposes zero-order-hold command streams but is not automatically an error.</dd>
+    </dl>
+  </section>
+
+  <h2>Regenerate</h2>
+  <p><code>dataset_tools/scripts/generate_dashboard.sh [data-root]</code></p>
+</main>
+<script>
+const DATA=/*__DATA__*/;
+const number=(v,d=2)=>v==null||Number.isNaN(v)?'–':Math.abs(v)>=1000?Math.round(v).toLocaleString():Number(v).toFixed(d).replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'');
+
+const overview=document.querySelector('#overview');
+for(const d of DATA){
+  const card=document.createElement('div');card.className='card';
+  card.innerHTML=`<div class="name">${d.label}</div><div class="big">${number(d.metrics.total_hours,2)} h</div><div class="small">${number(d.metrics.n_episodes,0)} episodes · ${number(d.metrics.n_frames,0)} frames · ${number(d.metrics.fps,0)} fps</div><div class="small">${number(d.metrics.n_tasks_referenced,0)} task groups · median episode ${number(d.metrics.episode_duration_median_s,1)} s</div>`;
+  overview.append(card);
+}
+
+const issues=document.querySelector('#issues');
+for(const d of DATA){
+  const card=document.createElement('div');card.className='card';
+  const title=document.createElement('div');title.className='name '+(d.issues.length?'bad':d.warnings.length?'warn':'ok');title.textContent=`${d.label}: ${d.issues.length?d.issues.length+' issue(s)':d.warnings.length?d.warnings.length+' warning(s)':'checks passed'}`;card.append(title);
+  if(d.issues.length){const ul=document.createElement('ul');for(const issue of d.issues){const li=document.createElement('li');li.textContent=issue;ul.append(li)}card.append(ul)}
+  if(d.warnings.length){const ul=document.createElement('ul');for(const warning of d.warnings){const li=document.createElement('li');li.textContent=warning;ul.append(li)}card.append(ul)}
+  issues.append(card);
+}
+
+const plots=document.querySelector('#plots'), SCALE=1.05, PAD=15;
+for(const d of DATA)for(const task of d.tasks){
+  const xs=task.goals.map(p=>p[0]),ys=task.goals.map(p=>p[1]);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const width=Math.max(160,(x1-x0)*SCALE+PAD*2),height=Math.max(125,(y1-y0)*SCALE+PAD*2);
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('width',width);svg.setAttribute('height',height);
+  const cell=(d.metrics.target_mm||10)*SCALE;
+  let lines='';for(let x=PAD;x<width-PAD;x+=cell)lines+=`<line class="grid" x1="${x}" x2="${x}" y1="${PAD}" y2="${height-PAD}"/>`;for(let y=PAD;y<height-PAD;y+=cell)lines+=`<line class="grid" x1="${PAD}" x2="${width-PAD}" y1="${y}" y2="${y}"/>`;
+  svg.innerHTML=lines+`<rect class="frame" x="${PAD}" y="${PAD}" width="${width-2*PAD}" height="${height-2*PAD}"/>`;
+  task.goals.forEach((p,i)=>{const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('class','point');dot.setAttribute('r',4);dot.setAttribute('cx',PAD+(p[0]-x0)*SCALE);dot.setAttribute('cy',PAD+(p[1]-y0)*SCALE);const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=`point ${i+1}: ${p[0]}, ${p[1]} mm`;dot.append(title);svg.append(dot)});
+  const box=document.createElement('div');box.className='plot';const heading=document.createElement('h3');heading.textContent=`${d.label} · ${task.label}`;const sub=document.createElement('p');sub.textContent=`${task.episodes} episodes · ${number(task.hours,2)} h · ${number(task.density,2)} episodes/cell · ${d.goal_source}`;box.append(heading,sub,svg);plots.append(box);
+}
+
+const ROWS=[
+ ['n_episodes','Episodes',0],['n_frames','Frames',0],['total_hours','Hours',2],['fps','FPS',1],
+ ['episode_duration_median_s','Median episode (s)',1],['n_tasks_declared','Declared tasks',0],['n_tasks_referenced','Task groups used',0],
+ ['integrity_issue_count','Integrity issues',0],['integrity_warning_count','Integrity warnings',0],['state_nonfinite','Non-finite state',0],['action_nonfinite','Non-finite action',0],
+ ['timestamp_nonmonotonic_steps','Non-monotonic timestamps',0],['timestamp_dt_cv','Timestamp dt CV',3],['missing_video_files','Missing videos',0],
+ ['target_labelled_episode_frac','Target-labelled episodes',2],['demo_target_hit_frac','Demo target-hit fraction',2],
+ ['demo_min_target_dist_p95_mm','Minimum target error p95 (mm)',1],['demo_final_target_dist_p95_mm','Final target error p95 (mm)',1],
+ ['episodes_per_target_cell','Episodes / PCA target cell',2],['target_cells_total','PCA target cells',1],['goal_nn_median_mm','Goal NN distance (mm)',1],
+ ['action_repeat_frac','Repeated-action fraction',2],
+ ['state_dim','State dimensions',0],['action_dim','Action dimensions',0]
+];
+const table=document.querySelector('#metrics'),head=document.createElement('tr');for(const name of ['Metric',...DATA.map(d=>d.label)]){const th=document.createElement('th');th.textContent=name;head.append(th)}const thead=document.createElement('thead');thead.append(head);table.append(thead);const body=document.createElement('tbody');for(const [key,label,digits] of ROWS){const tr=document.createElement('tr'),first=document.createElement('td');first.textContent=label;tr.append(first);for(const d of DATA){const td=document.createElement('td');td.textContent=number(d.metrics[key],digits);tr.append(td)}body.append(tr)}table.append(body);
+</script>

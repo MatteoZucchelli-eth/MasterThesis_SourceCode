@@ -1,0 +1,82 @@
+# VLA_PLANNER: VLA perception + scripted execution of the final approach.
+# APPROACHING  VLA action chunks carry the tip into the wrist camera's range
+# ACCUMULATING arm freezes, tip→target predictions are batch-averaged
+# STANDOFF     planned transit to a standoff knot, then stops
+# (re-accumulate) the estimate is re-measured from that closer viewpoint
+# VISUAL_SERVOING image-plane alignment at the standoff
+# FINALIZING   a second planned leg pushes onto the estimate open-loop
+# Defaults are sized from the tip-prediction head's eval sweeps: ~10 mm
+# per-prediction error inside ~8 cm, unreliable beyond ~12 cm.
+/**:
+  ros__parameters:
+    # ── APPROACHING → ACCUMULATING: the handover gate ──────────────────────
+    # Gate on a recent confident estimate from the detector.
+    vla_planner_approach_consecutive: 3 # Consecutive gated detections required; debounces distractor locks
+    vla_planner_approach_detection_max_age_s: 2.0 # Max age of the close-range estimate [s]
+    vla_planner_approach_rearm_s: 5.0 # After the gate condition fails, how long before a new streak may start [s]
+    vla_planner_approach_timeout_s: 90.0 # Restart from the default pose if the gate never fires [s] (see abort_max_restarts)
+    vla_planner_approach_distance: 0.15 # Far-mode bound for the standoff batch [m], not a handover threshold
+
+    # ── ACCUMULATING: freeze, settle, average ──────────────────────────────
+    # Sampling waits for the tip to settle on the frozen command.
+    vla_planner_accumulate_settle_min_s: 2.0 # Minimum settle time before the first detection is accepted [s]
+    vla_planner_accumulate_settle_tol_mm: 2.0 # Tip-to-commanded-pose tolerance [mm]; also hard-gates the next motion leg
+    vla_planner_accumulate_settle_hold_s: 1.0 # Continuous time inside the tolerance before the next motion leg [s]
+    vla_planner_accumulate_settle_timeout_s: 5.0 # Start collecting anchored detections after this long even if tracking has not settled [s]
+    vla_planner_accumulate_min_samples: 30 # Detections to average before planning
+    vla_planner_accumulate_max_spread_mm: 12.0 # Converged once the sample RMS spread is below this [mm]
+    vla_planner_accumulate_outlier_mm: 75.0 # Discard detections this far from the accepted median [mm]
+    vla_planner_accumulate_timeout_s: 12.0 # Proceed on the mean, or abort if no detections, after this long without convergence [s]
+
+    # ── Where the close-range estimate's RANGE comes from ──────────────────
+    # Both keep the detector's bearing and differ only in range:
+    #   fine   the detector's own predicted depth.
+    #   stereo the head-d435 wall plane (g1_sensors wall_plane node) intersected
+    #          with the detection ray. Requires the node; without a plane nothing
+    #          accumulates.
+    # Applies to ACCUMULATING and the finalize correction, not the handover gate.
+    vla_planner_depth_source: "stereo" # fine | stereo
+    vla_planner_depth_max_age_s: 5.0 # Max age of the measured plane [s]
+    vla_planner_depth_max_shift_mm: 100.0 # Skip samples the donated range would move further than this [mm]
+    vla_planner_fine_depth_bias_mm: 0.0 # Detector depth correction [mm]; positive moves the target further along its wrist-camera ray. Separate from the head d435's depth_bias_m
+
+    # ── FINALIZING: the planned legs ───────────────────────────────────────
+    vla_planner_finalize_standoff_m: 0.015 # Length of the final push along the wall normal [m]
+    vla_planner_finalize_standoff_rise_m: 0.0 # Lift the standoff knot up the wall, tilting the push [m]
+    vla_planner_finalize_wall_offset_m: 0.003 # Stop this far short of the estimated target along the normal [m]
+    vla_planner_finalize_wall_lateral_offset_m: 0.0 # Static wall-local lateral offset [m]
+    vla_planner_finalize_wall_up_offset_m: 0.0 # Static wall-local up offset [m]
+    vla_planner_finalize_transit_duration_s: 6.0 # Current pose -> standoff [s]
+    vla_planner_finalize_insert_duration_s: 6.0 # The slow final insertion [s]
+    vla_planner_finalize_align_drill: true # Turn the drill axis onto the estimated wall normal, faded in over the leg
+
+    # ── VISUAL_SERVOING: wrist-camera image-plane alignment ────────────────
+    vla_planner_visual_servo_enabled: true # Align at the standoff before insertion
+    vla_planner_visual_servo_kp_s: 0.1 # Image-error proportional gain [1/s]
+    vla_planner_visual_servo_max_rate_mm_s: 2.0 # Wall-plane speed limit [mm/s]
+    vla_planner_visual_servo_max_offset_mm: 25.0 # Maximum travel from the standoff pose [mm]
+    vla_planner_visual_servo_jacobian_step_mm: 0.5 # Image-Jacobian finite-difference step [mm]
+    vla_planner_visual_servo_min_singular_px_per_m: 100.0 # Reject degenerate camera geometry
+    vla_planner_visual_servo_ema_alpha: 0.4 # New-sample weight in the anchored 3D estimate (0 = hold the accumulated one)
+    vla_planner_visual_servo_max_error_px: 120.0 # Reject a sighting this far from the drill-tip pixel
+    vla_planner_visual_servo_success_px: 7.0 # Alignment radius that starts the hold timer [px]
+    vla_planner_visual_servo_success_hold_s: 1.0 # Aligned hold before insertion [s]
+    vla_planner_visual_servo_timeout_s: 60.0 # Restart if alignment cannot converge [s]
+
+    # ── Live target correction during FINALIZING ───────────────────────────
+    # Re-reading the estimate (FK(q) · tip⁻¹ · target) cancels the arm's FK error
+    # against the IK executing the plan.
+    vla_planner_finalize_correct_target: false # False disables tracking, publishing and applying. Visual-servo insertions keep it measurement-only
+    vla_planner_finalize_correction_ema_alpha: 0.4 # Weight of a new detection in the live estimate
+    vla_planner_finalize_correction_max_age_s: 3.0 # Freeze the correction once the newest detection is older than this [s]
+    vla_planner_finalize_correction_rate_mm_s: 5.0 # Slew rate of the applied correction [mm/s]
+    vla_planner_finalize_correction_max_mm: 25.0 # Magnitude clamp [mm]
+    vla_planner_finalize_correction_gate_mm: 50.0 # Ignore live predictions this far from the initial planned target [mm] (0 disables)
+    vla_planner_finalize_correction_rate_deg_s: 3.0 # Slew rate of the orientation half [deg/s]
+    vla_planner_finalize_correction_max_deg: 3.0 # Magnitude clamp on the orientation half [deg]
+    vla_planner_finalize_shadow_fine_only: false # Publish a never-applied tracker on detector depth, as its own TF frame. Inert with depth_source: fine
+
+    # ── Restarts and completion ────────────────────────────────────────────
+    vla_planner_abort_max_restarts: 2 # Shared retry budget (stalled approach, far-mode batch, servo timeout); 0 = give up on abort
+    vla_planner_recover_timeout_s: 10.0 # Restart the approach if the default pose is not reached in this long [s]
+    vla_planner_complete_hold_s: 15.0 # Tracking must stay inside accumulate_settle_tol_mm this long before logging complete [s]

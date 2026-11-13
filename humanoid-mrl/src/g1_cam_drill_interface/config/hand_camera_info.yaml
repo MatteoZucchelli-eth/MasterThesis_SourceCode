@@ -1,0 +1,26 @@
+# ROS camera_info for the SEE3CAM hand camera.
+
+# From camera_working_scripts/calibration.yaml, in usb_cam's camera_info layout.
+image_width: 1280
+image_height: 720
+camera_name: hand_camera
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [690.1127251872208, 0.0, 639.8322628786954, 0.0, 689.9782285763009, 369.7137298773904,
+    0.0, 0.0, 1.0]
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [-0.348378440666311, 0.1540764129132001, 0.0002730650407718539, 0.0002612332722158002,
+    -0.03625109242875615]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [690.1127251872208, 0.0, 639.8322628786954, 0.0, 0.0, 689.9782285763009, 369.7137298773904,
+    0.0, 0.0, 0.0, 1.0, 0.0]

@@ -1,0 +1,1447 @@
+<robot name="g1_29dof_with_hand_rev_1_0">
+  <material name="dark">
+    <color rgba="0.2 0.2 0.2 1"/>
+  </material>
+  <material name="white">
+    <color rgba="0.7 0.7 0.7 1"/>
+  </material>
+  <!-- Unpainted steel, for the drill bit. The Isaac asset carries the same
+       three numbers as the displayColor on
+       hand_drill_hilti/drill_bit/{shank,tip} (and as its Steel material's
+       diffuseColor), so the bit is the same grey in RViz and in sim. Nothing
+       enforces that; change one and change the other.
+
+       Near-neutral on purpose (max channel spread 0.05), and that is not a
+       cosmetic choice: the asset this replaced painted the bit's outer half
+       bright red, so in sim the target square was the only saturated red thing
+       in frame while on the robot the reddest pixels were the bit the robot was
+       holding. "Steer at the reddest pixels" was not a weak cue, it was an
+       inverted one. A desaturated bit cannot be confused with any of the nine
+       coloured wall objects. -->
+  <material name="steel">
+    <color rgba="0.62 0.64 0.67 1"/>
+  </material>
+
+  <mujoco>
+    <compiler meshdir="meshes" discardvisual="false"/>
+  </mujoco>
+
+  <!-- [CAUTION] uncomment when convert to mujoco -->
+  <!-- <link name="world"></link>
+  <joint name="floating_base_joint" type="floating">
+    <parent link="world"/>
+    <child link="pelvis"/>
+  </joint> -->
+
+  <link name="pelvis">
+    <inertial>
+      <origin xyz="0 0 -0.07605" rpy="0 0 0"/>
+      <mass value="3.813"/>
+      <inertia ixx="0.010549" ixy="0" ixz="2.1E-06" iyy="0.0093089" iyz="0" izz="0.0079184"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/pelvis.STL"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+  </link>
+  <link name="pelvis_contour_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+    </inertial>
+    <visual>
+      <!-- rpy=0 to match the collision and the pelvis mesh: the contour shell
+           is authored hanging down in -Z; the upstream 90° Y rotation tipped
+           the visual onto its back in RViz. -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/pelvis_contour_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/pelvis_contour_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="pelvis_contour_joint" type="fixed">
+    <parent link="pelvis"/>
+    <child link="pelvis_contour_link"/>
+  </joint>
+
+  <!-- Legs -->
+  <link name="left_hip_pitch_link">
+    <inertial>
+      <origin xyz="0.002741 0.047791 -0.02606" rpy="0 0 0"/>
+      <mass value="1.35"/>
+      <inertia ixx="0.001811" ixy="3.68E-05" ixz="-3.44E-05" iyy="0.0014193" iyz="0.000171" izz="0.0012812"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hip_pitch_link.STL"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hip_pitch_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hip_pitch_joint" type="revolute">
+    <origin xyz="0 0.064452 -0.1027" rpy="0 0 0"/>
+    <parent link="pelvis"/>
+    <child link="left_hip_pitch_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.5307" upper="2.8798" effort="88" velocity="32"/>
+  </joint>
+  <link name="left_hip_roll_link">
+    <inertial>
+      <origin xyz="0.029812 -0.001045 -0.087934" rpy="0 0 0"/>
+      <mass value="1.52"/>
+      <inertia ixx="0.0023773" ixy="-3.8E-06" ixz="-0.0003908" iyy="0.0024123" iyz="1.84E-05" izz="0.0016595"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hip_roll_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hip_roll_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hip_roll_joint" type="revolute">
+    <origin xyz="0 0.052 -0.030465" rpy="0 -0.1749 0"/>
+    <parent link="left_hip_pitch_link"/>
+    <child link="left_hip_roll_link"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-0.5236" upper="2.9671" effort="139" velocity="20"/>
+  </joint>
+  <link name="left_hip_yaw_link">
+    <inertial>
+      <origin xyz="-0.057709 -0.010981 -0.15078" rpy="0 0 0"/>
+      <mass value="1.702"/>
+      <inertia ixx="0.0057774" ixy="-0.0005411" ixz="-0.0023948" iyy="0.0076124" iyz="-0.0007072" izz="0.003149"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hip_yaw_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hip_yaw_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hip_yaw_joint" type="revolute">
+    <origin xyz="0.025001 0 -0.12412" rpy="0 0 0"/>
+    <parent link="left_hip_roll_link"/>
+    <child link="left_hip_yaw_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.7576" upper="2.7576" effort="88" velocity="32"/>
+  </joint>
+  <link name="left_knee_link">
+    <inertial>
+      <origin xyz="0.005457 0.003964 -0.12074" rpy="0 0 0"/>
+      <mass value="1.932"/>
+      <inertia ixx="0.011329" ixy="4.82E-05" ixz="-4.49E-05" iyy="0.011277" iyz="-0.0007146" izz="0.0015168"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_knee_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_knee_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_knee_joint" type="revolute">
+    <origin xyz="-0.078273 0.0021489 -0.17734" rpy="0 0.1749 0"/>
+    <parent link="left_hip_yaw_link"/>
+    <child link="left_knee_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.087267" upper="2.8798" effort="139" velocity="20"/>
+  </joint>
+  <link name="left_ankle_pitch_link">
+    <inertial>
+      <origin xyz="-0.007269 0 0.011137" rpy="0 0 0"/>
+      <mass value="0.074"/>
+      <inertia ixx="8.4E-06" ixy="0" ixz="-2.9E-06" iyy="1.89E-05" iyz="0" izz="1.26E-05"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_ankle_pitch_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_ankle_pitch_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_ankle_pitch_joint" type="revolute">
+    <origin xyz="0 -9.4445E-05 -0.30001" rpy="0 0 0"/>
+    <parent link="left_knee_link"/>
+    <child link="left_ankle_pitch_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.87267" upper="0.5236" effort="35" velocity="30"/>
+  </joint>
+  <link name="left_ankle_roll_link">
+    <inertial>
+      <origin xyz="0.026505 0 -0.016425" rpy="0 0 0"/>
+      <mass value="0.608"/>
+      <inertia ixx="0.0002231" ixy="2E-07" ixz="8.91E-05" iyy="0.0016161" iyz="-1E-07" izz="0.0016667"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_ankle_roll_link.STL"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <origin xyz="-0.05 0.025 -0.03" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.05 -0.025 -0.03" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.12 0.03 -0.03" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.12 -0.03 -0.03" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_ankle_roll_joint" type="revolute">
+    <origin xyz="0 0 -0.017558" rpy="0 0 0"/>
+    <parent link="left_ankle_pitch_link"/>
+    <child link="left_ankle_roll_link"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-0.2618" upper="0.2618" effort="35" velocity="30"/>
+  </joint>
+  <link name="right_hip_pitch_link">
+    <inertial>
+      <origin xyz="0.002741 -0.047791 -0.02606" rpy="0 0 0"/>
+      <mass value="1.35"/>
+      <inertia ixx="0.001811" ixy="-3.68E-05" ixz="-3.44E-05" iyy="0.0014193" iyz="-0.000171" izz="0.0012812"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_hip_pitch_link.STL"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_hip_pitch_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_hip_pitch_joint" type="revolute">
+    <origin xyz="0 -0.064452 -0.1027" rpy="0 0 0"/>
+    <parent link="pelvis"/>
+    <child link="right_hip_pitch_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.5307" upper="2.8798" effort="88" velocity="32"/>
+  </joint>
+  <link name="right_hip_roll_link">
+    <inertial>
+      <origin xyz="0.029812 0.001045 -0.087934" rpy="0 0 0"/>
+      <mass value="1.52"/>
+      <inertia ixx="0.0023773" ixy="3.8E-06" ixz="-0.0003908" iyy="0.0024123" iyz="-1.84E-05" izz="0.0016595"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_hip_roll_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_hip_roll_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_hip_roll_joint" type="revolute">
+    <origin xyz="0 -0.052 -0.030465" rpy="0 -0.1749 0"/>
+    <parent link="right_hip_pitch_link"/>
+    <child link="right_hip_roll_link"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-2.9671" upper="0.5236" effort="139" velocity="20"/>
+  </joint>
+  <link name="right_hip_yaw_link">
+    <inertial>
+      <origin xyz="-0.057709 0.010981 -0.15078" rpy="0 0 0"/>
+      <mass value="1.702"/>
+      <inertia ixx="0.0057774" ixy="0.0005411" ixz="-0.0023948" iyy="0.0076124" iyz="0.0007072" izz="0.003149"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_hip_yaw_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_hip_yaw_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_hip_yaw_joint" type="revolute">
+    <origin xyz="0.025001 0 -0.12412" rpy="0 0 0"/>
+    <parent link="right_hip_roll_link"/>
+    <child link="right_hip_yaw_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.7576" upper="2.7576" effort="88" velocity="32"/>
+  </joint>
+  <link name="right_knee_link">
+    <inertial>
+      <origin xyz="0.005457 -0.003964 -0.12074" rpy="0 0 0"/>
+      <mass value="1.932"/>
+      <inertia ixx="0.011329" ixy="-4.82E-05" ixz="4.49E-05" iyy="0.011277" iyz="0.0007146" izz="0.0015168"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_knee_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_knee_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_knee_joint" type="revolute">
+    <origin xyz="-0.078273 -0.0021489 -0.17734" rpy="0 0.1749 0"/>
+    <parent link="right_hip_yaw_link"/>
+    <child link="right_knee_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.087267" upper="2.8798" effort="139" velocity="20"/>
+  </joint>
+  <link name="right_ankle_pitch_link">
+    <inertial>
+      <origin xyz="-0.007269 0 0.011137" rpy="0 0 0"/>
+      <mass value="0.074"/>
+      <inertia ixx="8.4E-06" ixy="0" ixz="-2.9E-06" iyy="1.89E-05" iyz="0" izz="1.26E-05"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_ankle_pitch_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_ankle_pitch_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_ankle_pitch_joint" type="revolute">
+    <origin xyz="0 9.4445E-05 -0.30001" rpy="0 0 0"/>
+    <parent link="right_knee_link"/>
+    <child link="right_ankle_pitch_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.87267" upper="0.5236" effort="35" velocity="30"/>
+  </joint>
+  <link name="right_ankle_roll_link">
+    <inertial>
+      <origin xyz="0.026505 0 -0.016425" rpy="0 0 0"/>
+      <mass value="0.608"/>
+      <inertia ixx="0.0002231" ixy="-2E-07" ixz="8.91E-05" iyy="0.0016161" iyz="1E-07" izz="0.0016667"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_ankle_roll_link.STL"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <origin xyz="-0.05 0.025 -0.03" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.05 -0.025 -0.03" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.12 0.03 -0.03" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.12 -0.03 -0.03" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.005"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_ankle_roll_joint" type="revolute">
+    <origin xyz="0 0 -0.017558" rpy="0 0 0"/>
+    <parent link="right_ankle_pitch_link"/>
+    <child link="right_ankle_roll_link"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-0.2618" upper="0.2618" effort="35" velocity="30"/>
+  </joint>
+
+  <!-- Torso -->
+  <link name="waist_yaw_link">
+    <inertial>
+      <origin xyz="0.003494 0.000233 0.018034" rpy="0 0 0"/>
+      <mass value="0.214"/>
+      <inertia ixx="0.00010673" ixy="2.703E-06" ixz="-7.631E-06" iyy="0.00010422" iyz="-2.01E-07" izz="0.0001625"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/waist_yaw_link_rev_1_0.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+  <joint name="waist_yaw_joint" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="pelvis"/>
+    <child link="waist_yaw_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.618" upper="2.618" effort="88" velocity="32"/>
+  </joint>
+  <link name="waist_roll_link">
+    <inertial>
+      <origin xyz="0 2.3E-05 0" rpy="0 0 0"/>
+      <mass value="0.086"/>
+      <inertia ixx="7.079E-06" ixy="0" ixz="0" iyy="6.339E-06" iyz="0" izz="8.245E-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/waist_roll_link_rev_1_0.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+  <joint name="waist_roll_joint" type="revolute">
+    <origin xyz="-0.0039635 0 0.044" rpy="0 0 0"/>
+    <parent link="waist_yaw_link"/>
+    <child link="waist_roll_link"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-0.52" upper="0.52" effort="35" velocity="30"/>
+  </joint>
+  <link name="torso_link">
+    <inertial>
+      <origin xyz="0.000931 0.000346 0.15082" rpy="0 0 0"/>
+      <mass value="6.78"/>
+      <inertia ixx="0.05905" ixy="3.3302E-05" ixz="-0.0017715" iyy="0.047014" iyz="-2.2399E-05" izz="0.025652"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/torso_link_rev_1_0.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/torso_link_rev_1_0.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="waist_pitch_joint" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="waist_roll_link"/>
+    <child link="torso_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.52" upper="0.52" effort="35" velocity="30"/>
+  </joint>
+
+  <!-- LOGO -->
+  <joint name="logo_joint" type="fixed">
+    <origin xyz="0.0039635 0 -0.044" rpy="0 0 0"/>
+    <parent link="torso_link"/>
+    <child link="logo_link"/>
+  </joint>
+  <link name="logo_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/logo_link.STL"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/logo_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Head -->
+  <link name="head_link">
+    <inertial>
+      <origin xyz="0.005267 0.000299 0.449869" rpy="0 0 0"/>
+      <mass value="1.036"/>
+      <inertia ixx="0.004085051" ixy="-2.543E-06" ixz="-6.9455E-05" iyy="0.004185212" iyz="-3.726E-06" izz="0.001807911"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/head_link.STL"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/head_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="head_joint" type="fixed">
+    <origin xyz="0.0039635 0 -0.044" rpy="0 0 0"/>
+    <parent link="torso_link"/>
+    <child link="head_link"/>
+  </joint>
+
+
+  <!-- IMU -->
+  <link name="imu_in_torso"></link>
+  <joint name="imu_in_torso_joint" type="fixed">
+    <origin xyz="-0.03959 -0.00224 0.14792" rpy="0 0 0"/>
+    <parent link="torso_link"/>
+    <child link="imu_in_torso"/>
+  </joint>
+
+  <link name="imu_in_pelvis"></link>
+  <joint name="imu_in_pelvis_joint" type="fixed">
+    <origin xyz="0.04525 0 -0.08339" rpy="0 0 0"/>
+    <parent link="pelvis"/>
+    <child link="imu_in_pelvis"/>
+  </joint>
+
+  <!-- d435 head camera. THE CAD-NOMINAL MOUNT, deliberately, not the measured
+       one. Isaac renders from the prim torso_link/d435_link in
+       g1_simulation/assets/isaacsim/g1/g1_29dof_rev_1_0_w_hilti_drill.usd, which
+       the sim rewrites from this joint at startup
+       (IsaacSimCfg.sync_camera_extrinsics); by hand,
+       g1_simulation/scripts/sync_camera_extrinsics_to_usd.py.
+
+       That sync is why the measured pose cannot live here. 791475a replaced this
+       origin with g1_sensors head_camera_calibration_node's result,
+
+         xyz="0.01643143946495893 0.017309884246971358 0.4611427021221629"
+         rpy="0.07305605430645347 0.8033091215171724 0.04556069746922471"
+
+       41.2 mm back and 31.3 mm up from the value below, plus 3.3 deg. On the
+       robot that is a measurement of where the physical camera is. In the sim it
+       is a pose inside the robot's own head: the sim's torso_link carries the
+       Unitree CAD mesh, the nearest bit of which sits 21.3 mm from that point —
+       past the camera's 10 mm near clip, so it renders rather than being clipped
+       away — and ~40k of the head shell's vertices fall inside the forward view
+       cone against ~600 at the CAD pose. b0bdef8 turned the sync on, it dutifully
+       carried the measurement into the asset, and every head frame recorded after
+       that is the unlit interior of the head shell. Mean luma 16/255 (i.e. black)
+       against 145-195 on every earlier dataset; the wrist camera was unaffected.
+
+       The gap between the two is real but it is not all mount error: the
+       calibration absorbs the AprilTag/FK chain's error as well, and the sim has
+       nothing to correct because it *is* the CAD. So the two descriptions cannot
+       share one number while a single URDF feeds both. Restoring the measured
+       pose for the robot means either giving the head its own opt-out in
+       camera_extrinsics.CAMERA_MOUNTS, or moving the sim's head mesh to match —
+       not editing this line back on its own. -->
+  <link name="d435_link"></link>
+  <joint name="d435_joint" type="fixed">
+    <origin xyz="0.0576235 0.01753 0.42987" rpy="0 0.8307767239493009 0"/>
+    <parent link="torso_link"/>
+    <child link="d435_link"/>
+  </joint>
+
+  <!-- mid360 -->
+  <link name="mid360_link"></link>
+  <joint name="mid360_joint" type="fixed">
+    <origin xyz="0.0002835 0.00003 0.41618" rpy="3.141592654 0.04014257279586953 0"/>
+    <parent link="torso_link"/>
+    <child link="mid360_link"/>
+  </joint>
+  <!-- NOTE(@bmicha) translation taken from -->
+  <!-- https://terra-1-g.djicdn.com/851d20f7b9f64838a34cd02351370894/Livox/Livox_Mid-360_User_Manual_EN.pdf -->
+  <link name="mid360_imu_link"></link>
+  <joint name="mid360_imu_joint" type="fixed">
+    <origin xyz="0.011 0.02326 -0.04412" rpy="0 0 0"/>
+    <parent link="mid360_link"/>
+    <child link="mid360_imu_link"/>
+  </joint>
+
+  <!-- Arm -->
+  <link name="left_shoulder_pitch_link">
+    <inertial>
+      <origin xyz="0 0.035892 -0.011628" rpy="0 0 0"/>
+      <mass value="0.718"/>
+      <inertia ixx="0.0004291" ixy="-9.2E-06" ixz="6.4E-06" iyy="0.000453" iyz="2.26E-05" izz="0.000423"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_shoulder_pitch_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0.04 -0.01" rpy="0 1.5707963267948966 0"/>
+      <geometry>
+        <cylinder radius="0.03" length="0.05"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_pitch_joint" type="revolute">
+    <origin xyz="0.0039563 0.10022 0.24778" rpy="0.27931 5.4949E-05 -0.00019159"/>
+    <parent link="torso_link"/>
+    <child link="left_shoulder_pitch_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.0892" upper="2.6704" effort="25" velocity="37"/>
+  </joint>
+  <link name="left_shoulder_roll_link">
+    <inertial>
+      <origin xyz="-0.000227 0.00727 -0.063243" rpy="0 0 0"/>
+      <mass value="0.643"/>
+      <inertia ixx="0.0006177" ixy="-1E-06" ixz="8.7E-06" iyy="0.0006912" iyz="-5.3E-06" izz="0.0003894"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_shoulder_roll_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="-0.004 0.006 -0.053" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.03" length="0.03"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_roll_joint" type="revolute">
+    <origin xyz="0 0.038 -0.013831" rpy="-0.27925 0 0"/>
+    <parent link="left_shoulder_pitch_link"/>
+    <child link="left_shoulder_roll_link"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.5882" upper="2.2515" effort="25" velocity="37"/>
+  </joint>
+  <link name="left_shoulder_yaw_link">
+    <inertial>
+      <origin xyz="0.010773 -0.002949 -0.072009" rpy="0 0 0"/>
+      <mass value="0.734"/>
+      <inertia ixx="0.0009988" ixy="7.9E-06" ixz="0.0001412" iyy="0.0010605" iyz="-2.86E-05" izz="0.0004354"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_shoulder_yaw_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_shoulder_yaw_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_yaw_joint" type="revolute">
+    <origin xyz="0 0.00624 -0.1032" rpy="0 0 0"/>
+    <parent link="left_shoulder_roll_link"/>
+    <child link="left_shoulder_yaw_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.618" upper="2.618" effort="25" velocity="37"/>
+  </joint>
+  <link name="left_elbow_link">
+    <inertial>
+      <origin xyz="0.064956 0.004454 -0.010062" rpy="0 0 0"/>
+      <mass value="0.6"/>
+      <inertia ixx="0.0002891" ixy="6.53E-05" ixz="1.72E-05" iyy="0.0004152" iyz="-5.6E-06" izz="0.0004197"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_elbow_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_elbow_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_elbow_joint" type="revolute">
+    <origin xyz="0.015783 0 -0.080518" rpy="0 0 0"/>
+    <parent link="left_shoulder_yaw_link"/>
+    <child link="left_elbow_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.0472" upper="2.0944" effort="25" velocity="37"/>
+  </joint>
+  <joint name="left_wrist_roll_joint" type="revolute">
+    <origin xyz="0.100 0.00188791 -0.010" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <parent link="left_elbow_link"/>
+    <child link="left_wrist_roll_link"/>
+    <limit effort="25" velocity="37" lower="-1.972222054" upper="1.972222054"/>
+  </joint>
+  <link name="left_wrist_roll_link">
+    <inertial>
+      <origin xyz="0.01713944778 0.00053759094 0.00000048864" rpy="0 0 0"/>
+      <mass value="0.08544498"/>
+      <inertia ixx="0.00004821544023" ixy="-0.00000424511021" ixz="0.00000000510599" iyy="0.00003722899093" iyz="-0.00000000123525" izz="0.00005482106541"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_wrist_roll_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_wrist_roll_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_wrist_pitch_joint" type="revolute">
+    <origin xyz="0.038 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <parent link="left_wrist_roll_link"/>
+    <child link="left_wrist_pitch_link"/>
+    <limit effort="5" velocity="22" lower="-1.614429558" upper="1.614429558"/>
+  </joint>
+  <link name="left_wrist_pitch_link">
+    <inertial>
+      <origin xyz="0.02299989837 -0.00111685314 -0.00111658096" rpy="0 0 0"/>
+      <mass value="0.48404956"/>
+      <inertia ixx="0.00016579646273" ixy="-0.00001231206746" ixz="0.00001231699194" iyy="0.00042954057410" iyz="0.00000081417712" izz="0.00042953697654"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_wrist_pitch_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_wrist_pitch_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_wrist_yaw_joint" type="revolute">
+    <origin xyz="0.046 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <parent link="left_wrist_pitch_link"/>
+    <child link="left_wrist_yaw_link"/>
+    <limit effort="5" velocity="22" lower="-1.614429558" upper="1.614429558"/>
+  </joint>
+  <link name="left_wrist_yaw_link">
+    <inertial>
+      <origin xyz="0.02200381568 0.00049485096 0.00053861123" rpy="0 0 0"/>
+      <mass value="0.08457647"/>
+      <inertia ixx="0.00004929128828" ixy="-0.00000045735494" ixz="0.00000445867591" iyy="0.00005973338134" iyz="0.00000043217198" izz="0.00003928083826"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_wrist_yaw_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_wrist_yaw_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hand_palm_joint" type="fixed">
+    <origin xyz="0.0415 0.003 0" rpy="0 0 0"/>
+    <parent link="left_wrist_yaw_link"/>
+    <child link="left_hand_palm_link"/>
+  </joint>
+  <link name="left_hand_palm_link">
+    <!-- Lumped left-hand payload. The real robot carries a simplified ~0.17 kg
+         stub here, not the articulated Dex3-1; Isaac fuses the whole left hand
+         into left_wrist_yaw_link (BODY_DYNAMICS: m=0.25458 = 0.08458 bare wrist
+         + 0.170 kg hand, combined CoM (0.0708,0.0002,0.0016) in the wrist frame).
+         Back-solving the hand-only CoM and expressing it in this palm frame
+         (minus the 0.0415,0.003,0 palm-joint offset) gives the origin below.
+         A full 0.373 kg Dex3 palm plus 0.324 kg of finger inertials (zeroed
+         below) would over-model the arm by 0.527 kg, inflating the g(q)
+         feedforward vs the Isaac ground-truth torque. Mass is folded here so the
+         massless finger joints are only teleop/index placeholders
+         (left_hand_actuated_joints in g1_supplemental_info maps them). Inertia
+         scaled from the Dex3 palm by 0.170/0.373; approximate and irrelevant to
+         gravity. -->
+    <inertial>
+      <origin xyz="0.05358 -0.00295 0.00213" rpy="0 0 0"/>
+      <mass value="0.17000"/>
+      <inertia ixx="0.00012556" ixy="0.0" ixz="0.0" iyy="0.00024602" iyz="0.0" izz="0.00018068"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hand_palm_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hand_palm_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hand_thumb_0_joint" type="revolute">
+    <origin xyz="0.0255 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <parent link="left_hand_palm_link"/>
+    <child link="left_hand_thumb_0_link"/>
+    <limit effort="2.45" velocity="3.14" lower="-1.04719755" upper="1.04719755"/>
+  </joint>
+  <link name="left_hand_thumb_0_link">
+    <!-- Massless: left-hand mass lumped into left_hand_palm_link to match Isaac. -->
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hand_thumb_0_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hand_thumb_1_joint" type="revolute">
+    <origin xyz="-0.0025 -0.0193 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <parent link="left_hand_thumb_0_link"/>
+    <child link="left_hand_thumb_1_link"/>
+    <limit effort="1.4" velocity="12" lower="-0.61086523" upper="1.04719755"/>
+  </joint>
+  <link name="left_hand_thumb_1_link">
+    <!-- Massless: left-hand mass lumped into left_hand_palm_link to match Isaac. -->
+
+    <collision>
+      <origin xyz="-0.001 -0.032 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.03 0.02"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hand_thumb_2_joint" type="revolute">
+    <origin xyz="0 -0.0458 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <parent link="left_hand_thumb_1_link"/>
+    <child link="left_hand_thumb_2_link"/>
+    <limit effort="1.4" velocity="12" lower="0" upper="1.74532925"/>
+  </joint>
+  <link name="left_hand_thumb_2_link">
+    <!-- Massless: left-hand mass lumped into left_hand_palm_link to match Isaac. -->
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hand_thumb_2_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hand_middle_0_joint" type="revolute">
+    <origin xyz="0.0777 0.0016 -0.0285" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <parent link="left_hand_palm_link"/>
+    <child link="left_hand_middle_0_link"/>
+    <limit effort="1.4" velocity="12" lower="-1.57079632" upper="0"/>
+  </joint>
+  <link name="left_hand_middle_0_link">
+    <!-- Massless: left-hand mass lumped into left_hand_palm_link to match Isaac. -->
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hand_middle_0_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hand_middle_1_joint" type="revolute">
+    <origin xyz="0.0458 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <parent link="left_hand_middle_0_link"/>
+    <child link="left_hand_middle_1_link"/>
+    <limit effort="1.4" velocity="12" lower="-1.74532925" upper="0"/>
+  </joint>
+  <link name="left_hand_middle_1_link">
+    <!-- Massless: left-hand mass lumped into left_hand_palm_link to match Isaac. -->
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hand_middle_1_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hand_index_0_joint" type="revolute">
+    <origin xyz="0.0777 0.0016 0.0285" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <parent link="left_hand_palm_link"/>
+    <child link="left_hand_index_0_link"/>
+    <limit effort="1.4" velocity="12" lower="-1.57079632" upper="0"/>
+  </joint>
+  <link name="left_hand_index_0_link">
+    <!-- Massless: left-hand mass lumped into left_hand_palm_link to match Isaac. -->
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hand_index_0_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hand_index_1_joint" type="revolute">
+    <origin xyz="0.0458 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <parent link="left_hand_index_0_link"/>
+    <child link="left_hand_index_1_link"/>
+    <limit effort="1.4" velocity="12" lower="-1.74532925" upper="0"/>
+  </joint>
+  <link name="left_hand_index_1_link">
+    <!-- Massless: left-hand mass lumped into left_hand_palm_link to match Isaac. -->
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/left_hand_index_1_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_shoulder_pitch_link">
+    <inertial>
+      <origin xyz="0 -0.035892 -0.011628" rpy="0 0 0"/>
+      <mass value="0.718"/>
+      <inertia ixx="0.0004291" ixy="9.2E-06" ixz="6.4E-06" iyy="0.000453" iyz="-2.26E-05" izz="0.000423"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_shoulder_pitch_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.04 -0.01" rpy="0 1.5707963267948966 0"/>
+      <geometry>
+        <cylinder radius="0.03" length="0.05"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_shoulder_pitch_joint" type="revolute">
+    <origin xyz="0.0039563 -0.10021 0.24778" rpy="-0.27931 5.4949E-05 0.00019159"/>
+    <parent link="torso_link"/>
+    <child link="right_shoulder_pitch_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.0892" upper="2.6704" effort="25" velocity="37"/>
+  </joint>
+  <link name="right_shoulder_roll_link">
+    <inertial>
+      <origin xyz="-0.000227 -0.00727 -0.063243" rpy="0 0 0"/>
+      <mass value="0.643"/>
+      <inertia ixx="0.0006177" ixy="1E-06" ixz="8.7E-06" iyy="0.0006912" iyz="5.3E-06" izz="0.0003894"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_shoulder_roll_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="-0.004 -0.006 -0.053" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.03" length="0.03"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_shoulder_roll_joint" type="revolute">
+    <origin xyz="0 -0.038 -0.013831" rpy="0.27925 0 0"/>
+    <parent link="right_shoulder_pitch_link"/>
+    <child link="right_shoulder_roll_link"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-2.2515" upper="1.5882" effort="25" velocity="37"/>
+  </joint>
+  <link name="right_shoulder_yaw_link">
+    <inertial>
+      <origin xyz="0.010773 0.002949 -0.072009" rpy="0 0 0"/>
+      <mass value="0.734"/>
+      <inertia ixx="0.0009988" ixy="-7.9E-06" ixz="0.0001412" iyy="0.0010605" iyz="2.86E-05" izz="0.0004354"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_shoulder_yaw_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_shoulder_yaw_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_shoulder_yaw_joint" type="revolute">
+    <origin xyz="0 -0.00624 -0.1032" rpy="0 0 0"/>
+    <parent link="right_shoulder_roll_link"/>
+    <child link="right_shoulder_yaw_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.618" upper="2.618" effort="25" velocity="37"/>
+  </joint>
+  <link name="right_elbow_link">
+    <inertial>
+      <origin xyz="0.064956 -0.004454 -0.010062" rpy="0 0 0"/>
+      <mass value="0.6"/>
+      <inertia ixx="0.0002891" ixy="-6.53E-05" ixz="1.72E-05" iyy="0.0004152" iyz="5.6E-06" izz="0.0004197"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_elbow_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_elbow_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_elbow_joint" type="revolute">
+    <origin xyz="0.015783 0 -0.080518" rpy="0 0 0"/>
+    <parent link="right_shoulder_yaw_link"/>
+    <child link="right_elbow_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.0472" upper="2.0944" effort="25" velocity="37"/>
+  </joint>
+  <joint name="right_wrist_roll_joint" type="revolute">
+    <origin xyz="0.100 -0.00188791 -0.010" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <parent link="right_elbow_link"/>
+    <child link="right_wrist_roll_link"/>
+    <limit effort="25" velocity="37" lower="-1.972222054" upper="1.972222054"/>
+  </joint>
+  <link name="right_wrist_roll_link">
+    <inertial>
+      <origin xyz="0.01713944778 -0.00053759094 0.00000048864" rpy="0 0 0"/>
+      <mass value="0.08544498"/>
+      <inertia ixx="0.00004821544023" ixy="0.00000424511021" ixz="0.00000000510599" iyy="0.00003722899093" iyz="0.00000000123525" izz="0.00005482106541"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_wrist_roll_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_wrist_roll_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_wrist_pitch_joint" type="revolute">
+    <origin xyz="0.038 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <parent link="right_wrist_roll_link"/>
+    <child link="right_wrist_pitch_link"/>
+    <limit effort="5" velocity="22" lower="-1.614429558" upper="1.614429558"/>
+  </joint>
+  <link name="right_wrist_pitch_link">
+    <inertial>
+      <origin xyz="0.02299989837 0.00111685314 -0.00111658096" rpy="0 0 0"/>
+      <mass value="0.48404956"/>
+      <inertia ixx="0.00016579646273" ixy="0.00001231206746" ixz="0.00001231699194" iyy="0.00042954057410" iyz="-0.00000081417712" izz="0.00042953697654"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_wrist_pitch_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_wrist_pitch_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_wrist_yaw_joint" type="revolute">
+    <origin xyz="0.046 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <parent link="right_wrist_pitch_link"/>
+    <child link="right_wrist_yaw_link"/>
+    <limit effort="5" velocity="22" lower="-1.614429558" upper="1.614429558"/>
+  </joint>
+  <link name="right_wrist_yaw_link">
+    <inertial>
+      <origin xyz="0.02200381568 -0.00049485096 0.00053861123" rpy="0 0 0"/>
+      <mass value="0.08457647"/>
+      <inertia ixx="0.00004929128828" ixy="0.00000045735494" ixz="0.00000445867591" iyy="0.00005973338134" iyz="-0.00000043217198" izz="0.00003928083826"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_wrist_yaw_link.STL"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_wrist_yaw_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_hand_palm_joint" type="fixed">
+    <origin xyz="0.0415 -0.003 0" rpy="0 0 0"/>
+    <parent link="right_wrist_yaw_link"/>
+    <child link="right_hand_palm_link"/>
+  </joint>
+  <link name="right_hand_palm_link">
+    <!-- Massless on purpose: a teleoperation reference frame, and a fixed-joint
+         leaf off right_wrist_yaw_link (the drill mounts on the wrist, not the
+         palm). No <inertial> means zero inertia in Pinocchio, so it cannot
+         inflate the arm's g(q) feedforward.
+
+         No <visual> either: right_drill_link's right_drill_hand.STL already
+         includes the gripping hand, so one here would render a second fist
+         inside the drill. Collision is kept, so the WBC model is unchanged. -->
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_hand_palm_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- Drill end-effector payload. Fixed to the right wrist so Pinocchio folds
+       its mass into right_wrist_yaw_link and the WBC gravity feedforward
+       (whole_body_rl_controller) holds the arm against the 1.338 kg drill.
+       Mass and CoM match the sim's drill body (hand_drill_hilti in
+       g1_29dof_rev_1_0_w_hilti_drill.usd), whose CoM is (0.1255, -0.003, -0.0487)
+       in the wrist frame, i.e. this joint's 0.0833 further back. The rotational
+       inertia is approximate and does not affect gravity compensation. -->
+  <link name="right_drill_link">
+    <inertial>
+      <origin xyz="0.0422 0 -0.0487" rpy="0 0 0"/>
+      <mass value="1.338"/>
+      <inertia ixx="0.005422" iyy="0.006728" izz="0.00178" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <!-- Hand+drill visual matching the Isaac asset
+             (drill_hand_compressed_coarse.usd), decimated to ~50k tris and baked
+             into the right_drill_link frame. Includes the gripping hand.
+
+             NO BIT: the Hilti masonry bit this was baked with is not the bit
+             the robot holds, so it was cut out of this mesh — two closed
+             components totalling 232 triangles, a 2.87 mm-radius shaft and a
+             3.89 mm-radius sleeve, both running from ~136 mm out to ~175 mm. The
+             bit now hangs off drill_chuck_link instead. If this mesh is ever
+             rebaked from the source asset the bit comes back with it, and it is
+             those two components (the only ones forward of the chuck with a
+             radius under 6 mm) that have to go again.
+
+             The drill body in here reaches x = 140.81 mm, 12.1 mm past
+             drill_chuck_link, because this mesh was baked from the *coarse* drill
+             asset while the frames below come from hand_drill_hilti.usd and the
+             two models disagree about the nose length. The consequence is
+             cosmetic and confined to RViz — the frames agree, and the sim
+             renders the USD, not this — but it does mean RViz shows ~32 mm of
+             bit protruding where Isaac shows the full 44.4 mm. The fix is to
+             rebake this mesh from the Hilti asset, NOT to plane-cut it at the
+             chuck: its cross-section there is 18 separate loops, so a cut leaves
+             an uncappable hole in the drill's nose. -->
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_drill_hand.STL"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <!-- Merged from the Isaac asset's 21 convex hulls
+             (right_wrist_yaw_link/drill_collisions), baked into the
+             right_drill_link frame.
+
+             NO BIT, for the same reason and by the same script as the visual
+             above: this stops at x = 0.1461, and the bit's own collision
+             geometry is the two convex parts on drill_chuck_link. -->
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_drill_hand_collision.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_drill_joint" type="fixed">
+    <parent link="right_wrist_yaw_link"/>
+    <child link="right_drill_link"/>
+    <origin xyz="0.0833 -0.003 0.0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Chuck face: the flat the bit is inserted into, 0.1287 m along
+       right_drill_link +x (0.2120 m from right_wrist_yaw_link). Measured
+       171.4 mm forward of the back of right_drill_hand.STL, which starts
+       42.7 mm behind this link's origin.
+
+       The mocap 6DOF body on the drill sits physically HERE, not at
+       right_drill_link, so mocap_tf_bridge's parent_body must name this frame
+       and the QTM body must be called drill_chuck_link. Point it at
+       right_drill_link instead and the wall target composes 128.7 mm short,
+       towards the robot, while every log line still looks healthy.
+
+       No <inertial>: the bit's geometry hangs off this link (below) but its mass
+       does not. The drill's 1.338 kg on right_drill_link was measured with a bit
+       fitted, and this bit differs from that one by under 3 g at the tip, so
+       re-stating it here would double-count rather than correct anything — and a phantom inertial on a fixed-joint
+       leaf lands in the arm's g(q) feedforward at full weight. -->
+  <link name="drill_chuck_link">
+    <!-- THE BIT. A plain hex-shank bit: 40 mm of hex shank, 8 mm across the
+         corners, then a 4 mm dia x 4.4 mm cutting tip, which is what the robot
+         actually holds — not the Hilti masonry bit both source assets shipped
+         with (stripped out of right_drill_link's meshes above).
+
+         On the CHUCK link, not on right_drill_link, and that is the point. Every
+         length in the bit is measured from the chuck face, which is the one
+         datum a caliper can reach on the real drill, so the meshes are baked in
+         this frame and load at origin zero. Changing bits then touches the two
+         STLs and drill_tip_joint below and nothing else — both stated from the
+         same face.
+
+         Exact geometry, in this frame, in metres along +x with the bit axis on
+         y = z = 0:
+
+           right_drill_bit_hex.STL  hexagonal prism, x 0.000 -> 0.040, corners on
+                                    a 0.004 radius (0.008 across the corners,
+                                    0.006928 across the flats), one corner on +y.
+                                    20 triangles, closed, outward-facing.
+           right_drill_bit_tip.STL  32-sided prism approximating a cylinder,
+                                    x 0.040 -> 0.0444, radius 0.002.
+                                    124 triangles, closed, outward-facing.
+
+         8 mm is ACROSS THE CORNERS, i.e. every corner sits on a 4 mm radius. Hex
+         stock is normally sized across the flats, so the natural misreading makes
+         the shank 15% too big and it looks entirely plausible.
+
+         The Isaac asset holds the identical triangles at
+         hand_drill_hilti/drill_bit/{shank,tip}, offset by the chuck face's
+         position in the drill body frame (x = 0.000745). NOTHING KEEPS THE TWO IN
+         STEP AUTOMATICALLY — the bit is geometry in the asset and a mesh plus a
+         frame here. A bit that is 40 mm in this file and 41 mm in the sim is a
+         silent 1 mm sim2real bias on every recorded episode, so change both.
+
+         Two <collision> elements, not one merged mesh, because each part is
+         convex on its own and their union is not. A single mesh handed to a
+         convex-hull collider would fill in the 4 mm shoulder with a taper from
+         the 8 mm hex straight out to the tip — and it is precisely the shoulder
+         that decides where the drill stops against the wall. Kept as two, the
+         collider's front face lands exactly on drill_tip_link.
+
+         No decimation and no separate collision mesh: the shank is 20 triangles
+         and the tip 124, so the visual geometry *is* the collision geometry. -->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_drill_bit_hex.STL"/>
+      </geometry>
+      <material name="steel"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_drill_bit_tip.STL"/>
+      </geometry>
+      <material name="steel"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_drill_bit_hex.STL"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://g1_state_publisher/urdf/meshes/right_drill_bit_tip.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="drill_chuck_joint" type="fixed">
+    <parent link="right_drill_link"/>
+    <child link="drill_chuck_link"/>
+    <origin xyz="0.1287 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Bit tip: 44.4 mm out from the chuck face, on the drill axis.
+
+       THIS IS THE ONE NUMBER TO CHANGE WHEN THE BIT CHANGES. It hangs off
+       drill_chuck_link precisely so that the number in this file is the one you
+       can put a caliper on: measure the new bit from the chuck face, put it
+       below, done. Nothing else on the robot needs editing — drill_tip_link is
+       the IK target and the recorded EEF frame (g1_definitions.dataset), so
+       everything downstream follows the frame.
+
+       44.4 mm is the sum of the two sections of geometry on drill_chuck_link
+       above: 40 mm of hex shank plus a 4.4 mm cutting tip. THE SAME NUMBER IS
+       STATED IN FOUR PLACES and nothing checks that they agree — this origin,
+       right_drill_bit_hex.STL's span, right_drill_bit_tip.STL's span, and the
+       two Mesh prims under hand_drill_hilti/drill_bit in the Isaac asset. Change
+       the bit and all four move together, or the frame the controller steers
+       stops being the end of the geometry it steers.
+
+       In the USD drill body frame 44.4 mm off the chuck lands at x = 0.0451, and
+       the tip prim's front face is authored exactly there — so, unlike the Hilti
+       bit whose collider stopped 2.3 mm short, PhysX now makes contact at the
+       instant drill_tip_link reaches a surface. IsaacSimCfg.reset_position has to
+       move with the bit length or the tip starts inside the wall.
+
+       No <inertial> beyond a marker mass, for the same reason as the chuck. -->
+  <link name="drill_tip_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+    </inertial>
+  </link>
+  <joint name="drill_tip_joint" type="fixed">
+    <parent link="drill_chuck_link"/>
+    <child link="drill_tip_link"/>
+    <origin xyz="0.0444 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Wrist camera (e-con Systems See3CAM_24CUG on the Hilti drill mount), in
+       two frames like the head d435's own chain: a body-convention mount frame,
+       and the optical frame the images are actually stamped with. usb_cam
+       publishes no TF of its own, so unlike the d435 both come from here. -->
+
+  <!-- Mount frame, ROS body convention: +X forward along the view direction,
+       +Y left, +Z up. A 25.5 deg downward pitch and a 90.4 deg roll, the camera
+       being mounted rotated on its bracket. -->
+  <link name="hand_camera_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+    </inertial>
+  </link>
+  <joint name="hand_camera_joint" type="fixed">
+    <parent link="right_drill_link"/>
+    <child link="hand_camera_link"/>
+    <!-- A MEASUREMENT, not a design constant: the camera rides a bracket that
+         can be loosened and moved. Re-run
+         g1_cam_drill_interface/launch/calibrate_hand_camera_launch.py after
+         anything touches the mount; it prints this line ready to paste, plus the
+         delta against live TF. From a 50-sample run, spread x 0.08 / y 0.14 /
+         z 0.09 mm.
+
+         Isaac renders from hand_cam_link_01 in
+         g1_simulation/assets/isaacsim/g1/g1_29dof_rev_1_0_w_hilti_drill.usd,
+         which the sim rewrites from this joint at startup
+         (IsaacSimCfg.sync_camera_extrinsics); by hand,
+         g1_simulation/scripts/sync_camera_extrinsics_to_usd.py. That prim is
+         authored in the OPTICAL convention, so it mirrors
+         hand_camera_optical_frame below rather than hand_camera_link, and it
+         sits in hand_drill_hilti, 0.2112550 m ahead of right_wrist_yaw_link
+         against this frame's 0.0833. Its translate x is therefore
+         0.047065 + 0.0833 - 0.2112550 = -0.080886, and both descriptions put the
+         camera 0.130365 m out along the drill axis.
+
+         UNRESOLVED: the run that produced these numbers measured y = 0.000540,
+         but also recorded -0.002908 as the y that puts drill_tip_link at v = 360
+         in the 1280x720 image. They are 3.4 mm apart and only one can be the
+         real camera; the value below is the raw measurement, which is what sim
+         and robot both run on. Settle it with a fresh calibration. -->
+    <origin xyz="0.04706492068310569 0.0005400834824121143 0.07249533243990894" rpy="-1.5784264921481173 0.4442525526521708 -0.009967014563055265"/>
+  </joint>
+
+  <!-- Optical frame: +Z forward into the scene, +X right, +Y down — the
+       convention the pinhole intrinsics in CameraInfo assume, and the frame the
+       images are stamped with (g1_cam_drill_interface/config/hand_camera.yaml
+       frame_id, g1_simulation isaacsim/ros_bridge.py, and g1_control's
+       perception_camera_frame, which back-projects detections into it).
+
+       Pure rotation, zero translation: the canonical body->optical change of
+       basis, bit-identical to the quaternion (-0.5, 0.5, -0.5, 0.5) that
+       realsense2_camera publishes between d435_color_frame and
+       d435_color_optical_frame. Any real offset between mount and imager belongs
+       in the joint above, not here. -->
+  <link name="hand_camera_optical_frame"></link>
+  <joint name="hand_camera_optical_joint" type="fixed">
+    <parent link="hand_camera_link"/>
+    <child link="hand_camera_optical_frame"/>
+    <origin xyz="0 0 0" rpy="-1.5707963267948966 0 -1.5707963267948966"/>
+  </joint>
+</robot>

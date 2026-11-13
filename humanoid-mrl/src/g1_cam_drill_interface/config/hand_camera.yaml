@@ -1,0 +1,72 @@
+# Parameters for the usb_cam driver running the SEE3CAM hand camera.
+
+/**:
+  ros__parameters:
+    # Overridden in hand_camera_launch.py (usb_cam cannot resolve the by-id path).
+    # If the by-id path changes, also update init_camera.sh.
+    video_device: "/dev/video0"
+
+    # This device supports the following formats:
+    #   UYVY 4:2:2 1280 x 720 (15 Hz)
+    #   UYVY 4:2:2 1920 x 1080 (8 Hz)
+    #   UYVY 4:2:2 1920 x 1200 (6 Hz)
+    #   Motion-JPEG 1280 x 720 (120 Hz)
+    #   Motion-JPEG 1280 x 720 (60 Hz)
+    #   Motion-JPEG 1920 x 1080 (120 Hz)
+    #   Motion-JPEG 1920 x 1080 (60 Hz)
+    #   Motion-JPEG 1920 x 1080 (30 Hz)
+    #   Motion-JPEG 1920 x 1200 (114 Hz)
+    #   Motion-JPEG 1920 x 1200 (60 Hz)
+    pixel_format: "mjpeg2rgb"
+    av_device_format: "YUV422P"
+    io_method: "mmap"
+    image_width: 1280
+    image_height: 720
+    # Matches the head d435, the sim and RECORD_FPS (one source frame per recorded
+    # frame). A source dipping below rate duplicates frames; re-measure the
+    # recorder pairing lag before long collections.
+    framerate: 30.0
+
+    camera_name: "hand_camera" # Calibration name, must match hand_camera_info.yaml -- not a TF frame.
+    # Optical frame (+Z fwd, +X right, +Y down), defined in the URDF as
+    # rpy=(-pi/2, 0, -pi/2) off hand_camera_link. usb_cam publishes no TF.
+    frame_id: "hand_camera_optical_frame"
+    camera_info_url: "package://g1_cam_drill_interface/config/hand_camera_info.yaml"
+
+    # Consumers (controller_manager_node, debug_viz_node, viewers, teleop) read
+    # compressed; raw drops frames under load. Raw is a lossless diagnostic tap
+    # (calibration, JPEG quality checks) — read it one consumer at a time. The
+    # recorder_node defaults to raw.
+    image_raw.enable_pub_plugins:
+      - "image_transport/raw"
+      - "image_transport/compressed"
+
+    # JPEG quality of the compressed transport (default 95; 60 is ~1/3 the size).
+    # Sizes the frames the VLA/perception models are fed: raise it first if
+    # close-range accuracy regresses.
+    #
+    # Leading dot: image_transport declares plugin params relative to the node's
+    # namespace (/camera/hand/color). Verify with
+    # `ros2 param get /camera/hand/color/hand_camera .image_raw.compressed.jpeg_quality`.
+    ".image_raw.compressed.jpeg_quality": 60
+
+    # ── Publisher QoS: RELIABLE/KEEP_LAST(100), hardcoded in usb_cam ─────────
+    # Not configurable (no param, no qos_overrides). Safe only while every reader
+    # is BEST_EFFORT (controller_manager_node, debug_viz_node, recorder_node,
+    # rviz config). A single slow RELIABLE reader throttles the writer (2.76 MB
+    # frames exceed Cyclone's WhcHigh) and starves everyone else.
+    #
+    # `ros2 topic echo` auto-selects RELIABLE here: echo the compressed topic or
+    # pass `--qos-reliability best_effort`. `ros2 topic hz` is safe.
+    #
+    # Full raw rate needs host net.core.rmem_max raised (e.g. 32 MB, Cyclone
+    # MinimumSocketReceiveBufferSize 16 MB); the deploy services use host networking.
+
+    # - Camera controls
+    # List all possible controls with: v4l2-ctl -d /dev/v4l/by-id/usb-e-con_systems_See3CAM_24CUG_2321D509-video-index0 --list-ctrl
+
+    brightness: 0
+
+    # Exposure mode/time are set in init_camera.sh: usb_cam 0.8.1 uses pre-4.x
+    # v4l2 control names (exposure_auto/exposure_absolute), which fail silently on
+    # the Jetson's uvcvideo. `brightness` and `gain` work here.

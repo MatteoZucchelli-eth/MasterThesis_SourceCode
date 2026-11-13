@@ -1,0 +1,268 @@
+name: humanoid-mrl
+
+# Service volumes replace, rather than extend, these shared volumes.
+x-common: &common
+  volumes:
+    - ../logs:/workspace/logs
+    - ../src:/workspace/src
+    - ../scripts:/workspace/scripts
+    - ../xr_teleoperate:/workspace/xr_teleoperate:ro
+    - /tmp/.X11-unix:/tmp/.X11-unix:rw
+  network_mode: host
+  working_dir: /
+  privileged: true
+  stdin_open: true
+  tty: true
+
+x-sim-base: &sim-common
+  !!merge <<: *common
+  build:
+    context: ../
+    dockerfile: docker/Dockerfile
+    args:
+      BASE_STAGE: sim
+    target: code
+  image: sim-base
+  env_file: .env.sim
+  runtime: nvidia
+
+x-deploy-base: &deploy-common
+  !!merge <<: *common
+  build:
+    context: ../
+    dockerfile: docker/Dockerfile
+    args:
+      BASE_STAGE: deploy
+    target: code
+  image: deploy-base
+  env_file: .env.deploy
+
+services:
+  # Development and control container.
+  dev-container:
+    profiles: [control, control-sim, teleoperation]
+    !!merge <<: *sim-common
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ~/.ssh:/workspace/.ssh
+      # The host files must exist before Compose starts.
+      - ../.claude:/root/.claude
+      - ../.claude.json:/root/.claude.json
+      - ../xr_socks:/xr_socks
+      - vscode-server-vol:/root/.vscode-server
+      - ../config.rviz:/root/.rviz2/default.rviz
+      # Host logs for post-mortem debugging.
+      - /var/log:/host/var/log:ro
+    command: ["/bin/bash", "-lc", "git config --global --add safe.directory /workspace
+        && sleep infinity"]
+
+  dev-container-deploy:
+    profiles: [teleop-real, deployment]
+    !!merge <<: *sim-common
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ~/.ssh:/workspace/.ssh
+      - ../xr_socks:/xr_socks
+      - vscode-server-vol:/root/.vscode-server
+      - ../config.rviz:/root/.rviz2/default.rviz
+    command: ["/bin/bash", "-lc", "git config --global --add safe.directory /workspace
+        && sleep infinity"]
+    env_file: .env.deploy
+
+  # Simulation camera bridges.
+  ros2-zmq-bridge:
+    profiles: [environment, teleoperation]
+    !!merge <<: *sim-common
+    volumes:
+      - ..:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    command: ["/bin/bash", "-ic", "python3 /workspace/xr_teleoperate/ros2_zmq_bridge.py
+        --topic /camera/d435/color/image_raw --host 127.0.0.1 --port 55590"]
+    restart: unless-stopped
+
+  ros2-zmq-bridge-hand:
+    profiles: [environment, teleoperation]
+    !!merge <<: *sim-common
+    volumes:
+      - ..:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    command: ["/bin/bash", "-ic", "python3 /workspace/xr_teleoperate/ros2_zmq_bridge.py
+        --topic /camera/hand/color/image_raw --host 127.0.0.1 --port 55591"]
+    restart: unless-stopped
+
+  # Simulation image server.
+  teleimager-server:
+    profiles: [environment, teleoperation]
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.teleimager
+    image: teleimager-server
+    privileged: true
+    network_mode: host
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../xr_teleoperate/teleop/teleimager/cam_config_server.yaml:/config/cam_config_server.yaml:ro
+      - ../xr_teleoperate/teleop/teleimager/cert.pem:/teleimager/cert.pem:ro
+      - ../xr_teleoperate/teleop/teleimager/key.pem:/teleimager/key.pem:ro
+      - ../xr_socks:/xr_socks
+    environment:
+      XR_TELEOP_CAM_CONFIG: /config/cam_config_server.yaml
+    command: ["teleimager-server"]
+
+  # Simulators.
+  simulation-isaacsim:
+    profiles: [sim-isaacsim, environment, control-sim, teleoperation]
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.isaacsim
+      target: final
+    image: humanoid-mrl-isaacsim
+    env_file: .env.sim
+    runtime: nvidia
+    network_mode: host
+    working_dir: /
+    privileged: true
+    stdin_open: true
+    tty: true
+    environment:
+      ACCEPT_EULA: Y
+      ROS_DISTRO: jazzy
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      LD_LIBRARY_PATH: ${LD_LIBRARY_PATH:-}:/isaac-sim/exts/isaacsim.ros2.bridge/jazzy/lib
+      COLCON_PYTHON_EXECUTABLE: /isaac-sim/python.sh
+    entrypoint: ["/bin/bash", "-ic"]
+    # Keep folded command lines at one indent so bash -ic receives one argument.
+    command:
+      - >-
+        source /opt/humanoid-mrl-msg-workspace/install/local_setup.bash && python
+        /opt/humanoid-mrl-msg-workspace/install/g1_simulation/lib/g1_simulation/isaacsim_sim
+        --cfg.camera-publish-hz ${SIM_CAMERA_PUBLISH_HZ:-30.0} ${SIM_EXTRA_ARGS:-}
+    volumes:
+      - ../logs:/workspace/logs
+      - ../src:/workspace/src
+      - ../scripts:/workspace/scripts
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - isaacsim-ov-cache:/.cache/ov:rw
+      - isaacsim-nv-cache:/.nv:rw
+      - isaacsim-kit-cache:/isaac-sim/kit/cache:rw
+
+  simulation-mujoco:
+    profiles: [sim-mujoco]
+    !!merge <<: *sim-common
+    command: ["/bin/bash", "-ic", "ros2 run g1_simulation mujoco_sim"]
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.mujoco
+      args:
+        BASE_STAGE: sim
+      target: code
+    image: sim-base-mujoco
+    devices:
+      - /dev/input/js0:/dev/input/js0
+      - /dev/input/event5:/dev/input/event5
+    environment:
+      - SDL_JOYSTICK_DEVICE=/dev/input/js0
+
+  # Real-robot cameras.
+  realsense-node:
+    !!merge <<: *deploy-common
+    profiles: [realsense-standalone, teleop-real, deployment]
+    volumes:
+      - /dev:/dev/
+      # The deployment target recreates this service after config changes.
+      - ./head_camera.yaml:/config/head_camera.yaml:ro
+    # Omit serial_no entirely when HEAD_CAMERA_SERIAL is empty.
+    command: ["/bin/bash", "-ic", "ros2 launch realsense2_camera rs_launch.py camera_name:=d435
+        config_file:=/config/head_camera.yaml $${HEAD_CAMERA_SERIAL:+serial_no:=$$HEAD_CAMERA_SERIAL}"]
+    # Require both configured streams.
+    healthcheck:
+      test: ["CMD", "bash", "-ic", "ros2 topic list >/tmp/topics
+          && grep -q '/camera/d435/color/image_raw' /tmp/topics
+          && grep -q '/camera/d435/aligned_depth_to_color/image_raw' /tmp/topics"]
+      retries: 1000
+      interval: 1s
+      start_period: 20s
+      start_interval: 1s
+    env_file: .env.deploy
+
+  # See3CAM wrist camera.
+  g1-hand-cam-deploy:
+    !!merge <<: *deploy-common
+    profiles: [teleop-real, deployment]
+    volumes:
+      # Device numbers can change after reconnects.
+      - /dev:/dev
+      - ..:/workspace
+    command: ["/bin/bash", "-ic", "ros2 launch g1_cam_drill_interface hand_camera_launch.py"]
+
+  # Real-robot image server.
+  teleimager-server-deploy:
+    profiles: [teleop-real]
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.teleimager
+    image: teleimager-server
+    privileged: true
+    network_mode: host
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../xr_teleoperate/teleop/teleimager/cam_config_deploy.yaml:/config/cam_config_deploy.yaml:ro
+      - ../xr_teleoperate/teleop/teleimager/cert.pem:/teleimager/cert.pem:ro
+      - ../xr_teleoperate/teleop/teleimager/key.pem:/teleimager/key.pem:ro
+      - ../xr_socks:/xr_socks
+    environment:
+      XR_TELEOP_CAM_CONFIG: /config/cam_config_deploy.yaml
+    restart: unless-stopped
+
+  # CPU-only ROS graph inspection.
+  live-debug:
+    profiles: [live-debug]
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.live-debug
+      target: debug
+    image: live-debug
+    container_name: humanoid-mrl-live-debug
+    env_file: .env.debug
+    network_mode: host
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    volumes:
+      - ..:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ../config.rviz:/root/.rviz2/default.rviz
+      - vscode-server-debug-vol:/root/.vscode-server
+    command: ["/bin/bash", "-lc", "git config --global --add safe.directory /workspace
+        && sleep infinity"]
+
+  # Documentation.
+  build-docs:
+    profiles: [docs]
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        BASE_STAGE: sim
+      target: documentation
+    image: documentation
+    volumes:
+      - ../docs:/workspace/docs
+      - ../src:/workspace/src
+      - ../scripts:/workspace/scripts
+    working_dir: /
+    command: ["/bin/bash", "-ic", "./workspace/scripts/build_docs.bash"]
+
+volumes:
+  isaacsim-ov-cache:
+  isaacsim-nv-cache:
+  isaacsim-kit-cache:
+  vla-hf-cache:
+  vscode-server-vol:
+  vscode-server-debug-vol:

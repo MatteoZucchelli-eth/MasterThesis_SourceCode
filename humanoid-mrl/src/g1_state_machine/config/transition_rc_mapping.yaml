@@ -1,0 +1,14 @@
+# Mapping of button combinations to FSM states
+finite_state_machine:
+  ros__parameters:
+    transition_rc_mapping:
+      damping: ["L2", "B"]
+      ready: ["L2", "DUP"]
+      move: ["R2", "A"]
+      vla: ["R2", "X"]
+      teleoperation: ["R2", "Y"]
+      goal_pose: ["R2", "B"]
+      auto_collect: ["L2", "A"]
+      vla_planner: ["L2", "X"]
+      fk_calibration: ["R1", "X"]
+      docs: ["START"]

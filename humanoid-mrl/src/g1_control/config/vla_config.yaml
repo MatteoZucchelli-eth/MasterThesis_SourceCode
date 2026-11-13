@@ -1,0 +1,48 @@
+# VLA client core: server connections, rates, task and metrics output.
+# Per-state tuning lives in auto_collect.yaml / vla_planner.yaml.
+/**:
+  ros__parameters:
+    # ── Servers ──────────────────────────────────────────────────────────────
+    server_host: "localhost"
+    server_port: 5555 # Action VLA: drives the VLA state and the VLA_PLANNER approach
+    fine_server_host: "localhost"
+    fine_server_port: 5556 # Detector-only model
+
+    # ── Roles ────────────────────────────────────────────────────────────────
+    # coarse (server_port): action VLA for the approach; fine (fine_server_port):
+    # close-range detector. Handover is gated on the detector alone.
+    vla_perception_only: false # Query, lift, overlay and record, but command nothing — the arm holds its entry pose
+
+    # ── Rates ────────────────────────────────────────────────────────────────
+    inference_dt: 0.5 # Action VLA replan period [s] (policy was tuned at this rate)
+    perception_inference_dt: 0.1 # Detector query period [s]
+
+    # ── Chunk de-jitter ──────────────────────────────────────────────────────
+    # smooth_radius WITHIN a chunk, deadband BETWEEN chunks. See vla/deadband.py.
+    vla_smooth_radius: 3
+    vla_action_deadband: 0.002 # metres
+    vla_action_deadband_rot_deg: 1.0 # Only consulted when the above is > 0
+
+    # ── Perception ───────────────────────────────────────────────────────────
+    # Detections below this visibility are counted and drawn but not lifted.
+    # Model-specific (perception_v4: >=0.99 -> 0.68 px median, <0.10 -> 262 px);
+    # re-measure for a new checkpoint. Outliers are rejected by accumulate_outlier_mm.
+    perception_min_visibility: 0.5
+    perception_camera_frame: "hand_camera_optical_frame" # TF frame of the wrist camera (optical, +Z forward)
+
+    # ── Hand-camera geometry: not configured here ─────────────────────────────
+    # Intrinsics come from /camera/hand/color/camera_info via the frame preparer
+    # (g1_common.camera); target_uv_px is in the prepared 720x720 frame.
+
+    # ── Task and I/O ─────────────────────────────────────────────────────────
+    image_topic: "/camera/d435/color/image_raw"
+    task_description: "drill in the red square"
+    goal_pose_topic: "/goal_pose" # Vector3 xyz in the current drill-tip frame (goal_pose_publisher_node)
+    dataset_path: "" # g1_dataset root; empty disables OOD scoring
+    ood_correction_enabled: false # Score and log by default; opt in only after validating the energy distribution
+    vla_metrics_csv_enabled: true # Per-session vla_metrics/*.csv and PNGs on VLA exit
+
+    # ── Progress-metric test sweep ───────────────────────────────────────────
+    progress_test_mode: false # VLA state runs a scripted drill-tip sweep; VLA actions do NOT drive the arm
+    progress_test_dwell_s: 15.0 # Hold per drill-tip waypoint [s]
+    progress_test_output_dir: "vla_metrics" # Where the CSVs and PNGs go; empty -> ./vla_metrics

@@ -1,0 +1,47 @@
+name: vla-eval
+
+services:
+  sim:
+    extends:
+      file: docker-compose.collect.yaml
+      service: sim
+    restart: unless-stopped
+    environment:
+      # Optional subset of the scenario table to run; empty runs all of it.
+      EVAL_SCENARIO_FILTER: ${EVAL_SCENARIO_FILTER:-}
+
+  stack:
+    extends:
+      file: docker-compose.collect.yaml
+      service: stack
+    restart: unless-stopped
+    volumes:
+      - ..:/workspace
+      - ${METRICS_DIR:-/tmp/vla-eval-metrics}:/metrics
+    command: ["/bin/bash", "-ic", "source /workspace/install/setup.bash && ros2 launch
+        g1_control vla_eval_launch.py metrics_output_dir:=/metrics rollout_s:=${ROLLOUT_S:-60.0}
+        ready_settle_s:=${READY_SETTLE_S:-20.0} rollout_state:=${ROLLOUT_STATE:-vla}
+        enable_wall_plane:=${ENABLE_WALL_PLANE:-false}
+        stop_on_complete:=${STOP_ON_COMPLETE:-true} enable_debug_viz:=${ENABLE_DEBUG_VIZ:-false}"]
+
+  # Live RViz view; only with SIM_GUI=1 (COMPOSE_PROFILES=gui via evaluate_vla.sh).
+  # Extends the stack to share its image, /workspace mount and ROS graph.
+  rviz:
+    profiles: [gui]
+    extends:
+      file: docker-compose.collect.yaml
+      service: stack
+    depends_on: [stack]
+    # Closing the window stops it for good.
+    restart: "no"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    # config.rviz carries the PerceptionOverlay display. use_sim_time is needed
+    # to resolve the sim-stamped TF tree.
+    command: ["/bin/bash", "-ic", "source /workspace/install/setup.bash && rviz2 -d
+        ${EVAL_RVIZ_CONFIG:-/workspace/config.rviz} --ros-args -p use_sim_time:=true"]
+
+volumes:
+  isaacsim-ov-cache:
+  isaacsim-nv-cache:
+  isaacsim-kit-cache:

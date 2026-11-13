@@ -1,0 +1,66 @@
+# AUTO_COLLECT: scripted right-arm approach onto a wall target square.
+/**:
+  ros__parameters:
+    auto_collect_phase_topic: "auto_collect/phase" # String topic carrying the phase name (trajectory_generation | approaching | going_to_default | holding)
+    auto_collect_standoff_m: 0.01 # Where the transit curve merges onto the wall normal; length of the straight-in push
+    # Legs are timed independently. Peak arm speed must stay under gear_wbc.yaml's
+    # upper_body_max_joint_speed (0.25 rad/s).
+    auto_collect_transit_duration_s: 8.0 # Seconds for the default-pose -> standoff leg
+    auto_collect_insert_duration_s: 4.0 # Seconds for the standoff -> target straight-in push
+    # Standoff settle gate: hold at the standoff until the lateral miss is nulled,
+    # since a miss survives the straight-in push once friction loads the drill.
+    # 0 disables the stop.
+    auto_collect_standoff_settle_mm: 0.5 # Max lateral tip miss before the push starts [mm]
+    auto_collect_standoff_settle_hold_s: 0.5 # Seconds it must stay inside that band
+    auto_collect_standoff_settle_timeout_s: 6.0 # Give up waiting and push anyway (logs a warning)
+    auto_collect_return_duration_s: 4.0 # Seconds to interpolate the upper body back to its start pose
+    # Arrival gate on the return: wait for the measured joints before planning and
+    # recording. The tolerance bounds the frame 0 -> 1 action jump (~12 mm at the
+    # tip per degree). On "arm never reached the start pose", raise
+    # auto_collect_return_duration_s rather than loosening this.
+    auto_collect_return_settle_deg: 1.0 # Max per-joint error to count as back at the start pose [deg]
+    auto_collect_return_settle_hold_s: 0.3 # Seconds every joint must stay inside that band
+    auto_collect_return_settle_timeout_s: 10.0 # Give up waiting this long after the ramp and start anyway (logs an error)
+    # Drill-axis alignment: the path follows the target TF's x-axis (wall normal).
+    # True also fades the tip orientation onto that normal over the transit leg;
+    # false holds the start-pose FK orientation.
+    auto_collect_align_drill: true # Steer the drill axis onto the target's wall normal
+    # Drill roll about the normal: true levels it against the target TF's z-axis
+    # (handle down); false keeps the start-pose roll.
+    auto_collect_level_drill: true # Hold the drill upright about the wall normal
+    auto_collect_drill_roll_deg: 0.0 # Cant off level about the drill axis, if upright is not the grip wanted [deg]
+    # Live target correction: displace the command by the target's motion since the
+    # plan. A no-op in sim (BaseLock pins the pelvis to `world`, so a nonzero value
+    # in the end-of-approach log means something moved). On the robot it absorbs
+    # FK error through `right_drill_link`.
+    auto_collect_correct_target: true # Track the live target instead of replaying the plan
+    auto_collect_correction_rate_mm_s: 5.0 # Max speed the correction may move the command [mm/s]
+    auto_collect_correction_max_mm: 30.0 # Max total position correction; saturating is logged [mm]
+    auto_collect_correction_rate_deg_s: 3.0 # Max speed the correction may turn the command [deg/s]
+    auto_collect_correction_max_deg: 3.0 # Max total orientation correction [deg]
+    # Recording follows the phases: start on `approaching`, save after the hold;
+    # any other exit from the approach discards the episode.
+    auto_collect_auto_record: true # Publish start/save/discard on /record_episode automatically
+    auto_collect_hold_record_s: 2.0 # Seconds the tip must stay settled on target before saving
+    # Settle gate: save only once the tip holds within these thresholds for
+    # auto_collect_hold_record_s; discard after auto_collect_settle_timeout_s.
+    auto_collect_settle_pos_mm: 1.5 # Max tip position error to count as settled [mm]
+    auto_collect_settle_ang_deg: 1.0 # Max tip orientation error to count as settled [deg]
+    auto_collect_settle_timeout_s: 15.0 # Give up and discard if not settled this long into the hold
+    # Start-pose jitter (observation.state is pelvis-frame, so base randomisation
+    # does not vary it). Set false for eval runs.
+    auto_collect_randomize_start: true # Jitter the right arm on `going_to_default`
+    auto_collect_start_pose_noise_deg: 25.0 # Uniform +/- jitter per right-arm joint [deg]
+    # Camera gate: project the target into both cameras' prepared (squared,
+    # rectified) frames before planning; skip if visible in neither. In loop mode
+    # a skip requests a fresh sim reset.
+    auto_collect_require_target_visible: true # Skip episodes whose target is off-camera
+    # Metric (not pixel) margin, since the cameras differ in range and fx. 0 checks only the centre.
+    auto_collect_visibility_margin_m: 0.01 # Border clearance the target must keep [m]
+    # Task randomisation: sample one of the six targetable cells and publish
+    # "drill in the <colour> <shape>". Set false for eval runs (red square).
+    auto_collect_randomize_task: true # Sample the target cell (and its sentence) per episode
+    # Loop mode: chain episodes headless via sim/reset_request. Headless workers set
+    # it true via auto_collect.launch.py.
+    auto_collect_loop: false # Run save/discard -> reset -> retract -> plan -> approach forever
+    auto_collect_loop_stall_timeout_s: 30.0 # Re-request a sim reset if the loop idles in HOLDING this long

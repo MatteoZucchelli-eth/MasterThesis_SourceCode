@@ -1,0 +1,15 @@
+qualisys_driver_node:
+  ros__parameters:
+    # Set to the QTM host on the lab network before a session.
+    host_name: "10.160.72.215"
+    port: 22222
+    frame_count: 0
+    last_frame_number: 0
+    dropped_frame_count: 0
+    qos_history_policy: "keep_all" # keep_all / keep_last
+    qos_reliability_policy: "best_effort" # best_effort / reliable
+    qos_depth: 10 # 10 / 100 / 1000
+    # Polling timer rate [Hz], not the QTM capture rate. Period is integer ms
+    # (1000 / rate), so keep this a divisor of 1000.
+    publish_rate: 50
+    frame_id: "qualisys"

@@ -1,0 +1,36 @@
+# Exclude large and unnecessary files from the Docker build context.
+# Used when building Orin/Thor/Spark images with the repo root as build context.
+# NOTE: .dockerignore only affects `docker build` (COPY into the image). It does NOT
+# affect the `-v .:/workspace` bind mount at runtime — that always shows the live tree.
+checkpoints*
+data/
+vla_eval_results/
+demo_data/
+g1_dataset*/
+*_dataset*/
+external_dependencies/
+media/
+wandb/
+runs/
+*.safetensors
+*.bin
+*.onnx
+*.trt
+*.mp4
+.git/
+.venv*/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+logs/
+dist/
+gr00t_n1d7_onnx/
+gr00t_n1d7_engines/
+# Packaged container artifacts (Apptainer/tarballs) — never copy these into the image
+*.gz
+*.tar
+*.sif

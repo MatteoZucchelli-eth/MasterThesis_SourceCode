@@ -1,0 +1,72 @@
+# Gear WBC configuration for G1 decoupled policy
+# ─────────────────────────────────────────────────────────────────────────────
+# Timing
+simulation_dt: 0.005
+control_decimation: 4 # control_dt = simulation_dt * control_decimation = 0.02s (50 Hz)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Motor PD gains for all 29 joints in PR order:
+#   [left_leg(6), right_leg(6), waist(3), left_arm(7), right_arm(7)]
+motor_kps: [150.0, 150.0, 150.0, 200.0, 40.0, 40.0, # left_leg
+  150.0, 150.0, 150.0, 200.0, 40.0, 40.0, # right_leg
+  250.0, 250.0, 250.0, # waist
+  100.0, 100.0, 50.0, 100.0, 30.0, 30.0, 30.0, # left_arm
+  100.0, 100.0, 50.0, 100.0, 30.0, 30.0, 30.0] # right_arm
+
+motor_kds: [2.0, 2.0, 2.0, 4.0, 2.0, 2.0, # left_leg
+  2.0, 2.0, 2.0, 4.0, 2.0, 2.0, # right_leg
+  5.0, 5.0, 5.0, # waist
+  # Arms: zeta = 0.7 at the motor_kps above, from scripts/tune_arm_gains.py
+  # (Kd = 2*zeta*sqrt(Kp*I_eff_max)). Re-run it after any Kp change.
+  6.2, 6.0, 2.0, 2.6, 0.5, 0.5, 0.3, # left_arm
+  10.1, 9.7, 4.2, 5.6, 1.6, 1.7, 1.2] # right_arm
+# ─────────────────────────────────────────────────────────────────────────────
+# Lower-body policy parameters (15 joints: left_leg + right_leg + waist)
+kps: [150.0, 150.0, 150.0, 200.0, 40.0, 40.0, 150.0, 150.0, 150.0, 200.0, 40.0, 40.0,
+  250.0, 250.0, 250.0]
+
+kds: [2.0, 2.0, 2.0, 4.0, 2.0, 2.0, 2.0, 2.0, 2.0, 4.0, 2.0, 2.0, 5.0, 5.0, 5.0]
+
+# Default lower-body joint angles (15 joints: left_leg + right_leg + waist)
+default_angles: [-0.1, 0.0, 0.0, 0.3, -0.2, 0.0, -0.1, 0.0, 0.0, 0.3, -0.2, 0.0, 0.0,
+  0.0, 0.0]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Observation scaling
+ang_vel_scale: 0.5
+dof_pos_scale: 1.0
+dof_vel_scale: 0.05
+action_scale: 0.25
+cmd_scale: [2.0, 2.0, 0.5]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Policy dimensions
+num_actions: 15
+num_obs: 516 # 86 obs/frame * 6 frames history
+obs_history_len: 6
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Initial commands
+cmd_init: [0.0, 0.0, 0.0]
+height_cmd: 0.74
+rpy_cmd: [0.0, 0.0, 0.0]
+freq_cmd: 0.75
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Upper body interpolation
+upper_body_max_joint_speed: 1.0 # [rad/s]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Arm integral term on position error, added to the arm tau channel to null the
+# residual of an imperfect gravity model. Time const ~ Kp/Ki; 0.0 disables.
+# Ungated: accumulates on every joint every tick. The per-joint clamp is the only
+# anti-windup (keeps 5 Nm wrists within limit). Sim has no joint friction, so
+# watch for stick-slip on hardware; if it appears, lower Ki or tighten the clamp.
+# Order: shoulder pitch/roll/yaw, elbow, wrist roll/pitch/yaw.
+arm_integral_ki: 50.0
+arm_integral_clamp: [5.0, 5.0, 5.0, 5.0, 2.0, 2.0, 2.0] # [Nm] per arm joint
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Send the interpolator's reference velocity as the motor dq target instead of
+# zero, so Kd damps tracking error rather than braking the intended motion.
+command_reference_velocity: true

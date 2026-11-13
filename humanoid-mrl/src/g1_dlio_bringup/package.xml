@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>g1_dlio_bringup</name>
+  <version>0.0.0</version>
+  <description>Bringup scripts for DLIO on the unitree G1</description>
+  <maintainer email="bmicha@ethz.ch">MRL</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>direct_lidar_inertial_odometry</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

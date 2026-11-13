@@ -1,0 +1,22 @@
+FROM ros:jazzy-ros-base
+
+# OpenCV, UVC, and ROS dependencies.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgl1 \
+        libglib2.0-0 \
+        libusb-1.0-0 \
+        libuvc-dev \
+        build-essential \
+        ros-${ROS_DISTRO}-cv-bridge \
+        python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /teleimager
+
+COPY xr_teleoperate/teleop/teleimager/ .
+
+# Ubuntu 24.04 requires --break-system-packages (PEP 668).
+RUN pip install --no-cache-dir --break-system-packages -e ".[server]"
+
+ENTRYPOINT ["/ros_entrypoint.sh"]
+CMD ["teleimager-server"]

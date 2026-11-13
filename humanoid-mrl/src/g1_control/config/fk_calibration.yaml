@@ -1,0 +1,24 @@
+controller_manager_node:
+  ros__parameters:
+    fk_calibration_tag_family: tag36h11
+    fk_calibration_tag_id: 1
+    # Black square edge length (quiet zone excluded).
+    fk_calibration_tag_size_m: 0.011
+    fk_calibration_sample_count: 30
+    # pupil_apriltags tag-frame +y is down in the printed tag/image plane.
+    fk_calibration_target_below_m: 0.0
+    # Signed offset along tag-frame +z (into the surface); negative = towards the camera.
+    fk_calibration_target_normal_m: -0.0
+    # Each Empty message starts a round; rounds append to one CSV until exit.
+    fk_calibration_start_topic: /fk_calibration/start
+
+    # Must be compressed topics (sensor_msgs/CompressedImage).
+    fk_calibration_hand_image_topic: /camera/hand/color/image_raw/compressed
+    fk_calibration_head_image_topic: /camera/d435/color/image_raw/compressed
+    fk_calibration_hand_camera_frame: hand_camera_optical_frame
+    fk_calibration_head_camera_frame: d435_color_optical_frame
+
+    fk_calibration_goal_duration_s: 5.0
+    fk_calibration_tracking_threshold_m: 0.002
+    fk_calibration_tracking_timeout_s: 15.0
+    fk_calibration_csv_path: ~/.ros/fk_calibration_{timestamp}.csv

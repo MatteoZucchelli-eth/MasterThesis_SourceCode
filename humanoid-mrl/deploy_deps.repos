@@ -1,0 +1,13 @@
+repositories:
+  livox-sdk2:
+    type: git
+    url: https://github.com/ethz-mrl/Livox-SDK2.git
+    version: 9791bc3d8744377dc02be7e6f40587af14add90d # current head of jazzy
+  livox-ros-driver2:
+    type: git
+    url: https://github.com/ethz-mrl/livox_ros_driver2.git
+    version: 486cbc2e1cdcf1cfe17bfd9875902b9bc15b8909 # current head of jazzy
+  direct_lidar_inertial_odometry:
+    type: git
+    url: https://github.com/ethz-mrl/direct_lidar_inertial_odometry.git
+    version: a3bc03d702d04ad90d76bad2e66bdbf99ca07721 # current head of feature/ros2

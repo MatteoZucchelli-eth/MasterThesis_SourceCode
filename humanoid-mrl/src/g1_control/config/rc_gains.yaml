@@ -1,0 +1,7 @@
+controller_manager_node:
+  ros__parameters:
+    gains:
+      vx: 0.5
+      vy: 0.25
+      vz: 0.1
+      vyaw: 2.0

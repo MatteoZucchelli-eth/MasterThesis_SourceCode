@@ -1,0 +1,11 @@
+{
+  "status": "vla",
+  "detail": "vla confirmed",
+  "rollout_state": "VLA_PLANNER",
+  "completed": 18,
+  "total": 36,
+  "scenario": 7,
+  "task": 1,
+  "tasks_in_scene": 3,
+  "instruction": "drill in the red square"
+}

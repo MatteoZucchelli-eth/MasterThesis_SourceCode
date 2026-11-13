@@ -1,0 +1,26 @@
+# Head RealSense parameters loaded by realsense-node in docker-compose.yaml.
+# The d435 prefix must match camera_name:=d435.
+
+# Best-effort QoS avoids stale frames and matches the subscribers.
+color_qos: "SENSOR_DATA"
+depth_qos: "SENSOR_DATA"
+
+# The wall-plane estimator and VLA planner consume aligned depth.
+enable_depth: true
+align_depth.enable: true
+
+# These rates fit the camera's measured USB 2.1 bandwidth.
+depth_module.depth_profile: "640x480x15"
+rgb_camera.color_profile: "640x480x30"
+
+# Publish only transports used by the stack.
+d435.aligned_depth_to_color.image_raw.enable_pub_plugins:
+  - "image_transport/raw"
+d435.depth.image_rect_raw.enable_pub_plugins:
+  - "image_transport/raw"
+d435.color.image_raw.enable_pub_plugins:
+  - "image_transport/raw"
+  - "image_transport/compressed"
+
+# Compressed images are for viewers; control and recording use raw images.
+".d435.color.image_raw.compressed.jpeg_quality": 60

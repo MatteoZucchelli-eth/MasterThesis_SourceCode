@@ -1,0 +1,33 @@
+head_camera:
+  enable_zmq: true
+  zmq_port: 55592 # head frames published on ZMQ (clean, no PIP) — for VLA recording
+  enable_webrtc: true
+  webrtc_port: 60001
+  webrtc_codec: h264
+  type: zmq_source
+  zmq_source_port: 55590 # bridge connects here and pushes JPEG frames
+  image_shape: [480, 640]
+  fps: 20
+  # Show the hand camera in a vertical strip beside the head view in the WebRTC
+  # stream shown in the VR headset, so it never occludes the head frame. The ZMQ
+  # stream above stays the pure head frame. pip_scale = strip width / head width;
+  # pip_side = which side the strip goes on (right|left).
+  pip_camera: hand_camera
+  pip_scale: 0.33
+  pip_side: right
+
+hand_camera:
+  enable_zmq: true
+  zmq_port: 55593 # hand frames published on ZMQ (clean) — for VLA recording
+  enable_webrtc: false
+  type: zmq_source
+  zmq_source_port: 55591 # hand bridge connects here and pushes JPEG frames
+  image_shape: [480, 640]
+  fps: 20
+
+# udp_relay:
+#   host: 127.0.0.1
+#   port: 9870
+
+unix_relay:
+  path: /xr_socks/xr_pose.sock

@@ -1,0 +1,84 @@
+# One headless Isaac Sim and control stack per Compose project:
+#
+#   ROS_DOMAIN_ID=42 DATASET_PATH=/workspace/g1_dataset_worker_1 \
+#     docker compose -p collect-w1 -f docker/docker-compose.collect.yaml up -d
+#
+# Give each worker a unique ROS_DOMAIN_ID and DATASET_PATH. Equal memory and
+# swap limits prevent a worker from pushing the host into swap.
+
+name: collect
+
+services:
+  sim:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.isaacsim
+      target: final
+    image: humanoid-mrl-isaacsim
+    env_file: .env.sim
+    runtime: nvidia
+    network_mode: host
+    working_dir: /
+    privileged: true
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    mem_limit: ${SIM_MEM_LIMIT:-20g}
+    memswap_limit: ${SIM_MEM_LIMIT:-20g}
+    environment:
+      ACCEPT_EULA: Y
+      ROS_DISTRO: jazzy
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:?set a unique ROS_DOMAIN_ID per worker}
+      LD_LIBRARY_PATH: ${LD_LIBRARY_PATH:-}:/isaac-sim/exts/isaacsim.ros2.bridge/jazzy/lib
+      COLCON_PYTHON_EXECUTABLE: /isaac-sim/python.sh
+      # Override the baked camera QoS without rebuilding.
+      G1_CAMERA_QOS_PROFILE: ${G1_CAMERA_QOS_PROFILE:-}
+      # Collection does not consume head depth; set a topic to enable it.
+      G1_HEAD_DEPTH_TOPIC: ${G1_HEAD_DEPTH_TOPIC-}
+    entrypoint: ["/bin/bash", "-ic"]
+    # Keep folded command lines at one indent so bash -ic receives one argument.
+    command:
+      - >-
+        source /opt/humanoid-mrl-msg-workspace/install/local_setup.bash && python
+        /opt/humanoid-mrl-msg-workspace/install/g1_simulation/lib/g1_simulation/isaacsim_sim
+        ${SIM_GUI_FLAG:---cfg.no-gui} --cfg.camera-publish-hz ${SIM_CAMERA_PUBLISH_HZ:-30.0} ${SIM_EXTRA_ARGS:-}
+    volumes:
+      - ../logs:/workspace/logs
+      - ../src:/workspace/src
+      - ../scripts:/workspace/scripts
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - isaacsim-ov-cache:/.cache/ov:rw
+      - isaacsim-nv-cache:/.nv:rw
+      - isaacsim-kit-cache:/isaac-sim/kit/cache:rw
+
+  stack:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        BASE_STAGE: sim
+      target: code
+    image: sim-base
+    env_file: .env.sim
+    network_mode: host
+    working_dir: /workspace
+    privileged: true
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    mem_limit: ${STACK_MEM_LIMIT:-6g}
+    memswap_limit: ${STACK_MEM_LIMIT:-6g}
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:?set a unique ROS_DOMAIN_ID per worker}
+      G1_CONTROLLER_EXPERIMENT: ${G1_CONTROLLER_EXPERIMENT:-}
+    volumes:
+      - ..:/workspace
+    command: ["/bin/bash", "-ic", "source /workspace/install/setup.bash && ros2 launch
+        g1_control auto_collect_launch.py dataset_path:=${DATASET_PATH:?set a unique
+        DATASET_PATH per worker} arm_integral_ki_override:=${ARM_INTEGRAL_KI_OVERRIDE:--1.0}"]
+
+volumes:
+  isaacsim-ov-cache:
+  isaacsim-nv-cache:
+  isaacsim-kit-cache:

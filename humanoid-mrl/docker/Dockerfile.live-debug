@@ -1,0 +1,59 @@
+# Build custom messages without carrying build tools into the debug image.
+
+FROM ros:jazzy-ros-base AS msg-builder
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN --mount=type=cache,id=debug_apt_cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=debug_apt_cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    ros-jazzy-rosidl-default-generators \
+    ros-jazzy-rosidl-generator-dds-idl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /msg_ws/src
+COPY src/unitree_msgs unitree_msgs
+COPY g1_interfaces g1_interfaces
+
+WORKDIR /msg_ws
+RUN source "/opt/ros/${ROS_DISTRO}/setup.bash" \
+    && colcon build --merge-install \
+    && rm -rf build log src
+
+# CPU-only ROS graph debugging image
+
+FROM ros:jazzy-ros-base AS debug
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN --mount=type=cache,id=debug_apt_cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=debug_apt_cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    less \
+    ros-jazzy-compressed-image-transport \
+    ros-jazzy-rmw-cyclonedds-cpp \
+    ros-jazzy-rosbag2-storage-mcap \
+    ros-jazzy-rqt \
+    ros-jazzy-rqt-common-plugins \
+    ros-jazzy-rviz2 \
+    ros-jazzy-tf2-tools \
+    libgl1-mesa-dri \
+    xauth \
+    && rm -rf /var/lib/apt/lists/*
+
+# Custom topic definitions.
+COPY --from=msg-builder /msg_ws/install /opt/humanoid-mrl-msgs
+COPY --chmod=755 docker/live_debug_entrypoint.sh /live_debug_entrypoint.sh
+
+ENV LIBGL_ALWAYS_SOFTWARE=1 \
+    QT_X11_NO_MITSHM=1 \
+    RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+
+# Source the overlay in attached shells too.
+RUN echo 'source /live_debug_entrypoint.sh --source-only' | tee /etc/profile.d/ros_live_debug.sh >>/root/.bashrc
+
+ENTRYPOINT ["/live_debug_entrypoint.sh"]
+CMD ["bash"]
